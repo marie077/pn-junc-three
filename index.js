@@ -1,5 +1,5 @@
 import * as THREE from './node_modules/three/build/three.module.js'; 
-import { MathUtils } from 'three/src/math/MathUtils';
+import { MathUtils } from './node_modules/three/src/math/MathUtils';
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
