@@ -1,5 +1,7 @@
 import * as THREE from 'https://unpkg.com/three/build/three.module.js'; 
 import { MathUtils } from 'https://unpkg.com/three/src/math/MathUtils.js';
+import { ImprovedNoise } from 'three/examples/jsm/Addons';
+
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
@@ -20,11 +22,19 @@ let cubeSize = 75;
 let clock = new THREE.Clock();
 let xLevel = 0.0;
 
+//electric field attributes
+let arrowNegative;
+let arrowPositive;
+
+//scatter variables
+let scatterTimeMean = 2;
+const perlin = new ImprovedNoise();
+
 //on mouse move
 // document.addEventListener( 'mousemove', onDocumentMouseMove );
-
 init();
 update();
+
 
 function init() {
     //camera, background textures, background, scene, initial geometry, materials, renderer
@@ -80,7 +90,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -10.0, 10.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -13.0, 13.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -118,7 +128,7 @@ function init() {
 
     // create initial electrons
     for (let i = 0; i < 50; i++) {
-        createSphere();
+        createSphere(i);
     }
 }
 
@@ -135,7 +145,7 @@ function resetGUI() {
 
 
 // Function to create a sphere inside the cube
-function createSphere() {
+function createSphere(i) {
   const geometry = new THREE.SphereGeometry(1, 32, 32);
   const material = new THREE.MeshBasicMaterial({ color: 0xF8DE7E});
   const sphere = new THREE.Mesh(geometry, material);
@@ -149,8 +159,7 @@ function createSphere() {
   
   cube1.add(sphere);
   let randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-  spheres.push({ object: sphere, velocity: randomVelocity,
-    speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, initVelocity: randomVelocity});
+  spheres.push({ object: sphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
 }
 
 
@@ -159,32 +168,67 @@ function update() {
     // let time = 0.01;
     // let time = clock.getDelta();
     // console.log('pre:' + time);
+    let currentTime = performance.now();
     let time = clock.getDelta()/15;
-    console.log("post" + time);
+    console.log("time:" + currentTime);
+
+    if (xLevel === 0) {
+        scene.remove(arrowNegative);
+        scene.remove(arrowPositive);
+        arrowNegative = null;
+        arrowPositive = null;
+    } else if (xLevel < 0) {
+        scene.remove(arrowPositive);
+        arrowPositive =  null;
+    } else if (xLevel > 0) {
+        scene.remove(arrowNegative);
+        arrowNegative = null;
+    }
     
     //dis my electric field...
     let electricField = new THREE.Vector3(xLevel, 0, 0);
+    let electricFieldCopy = electricField.clone();
+    electricFieldCopy.normalize();
+    const origin = new THREE.Vector3( 0, 70, 0 );
+    const length = 50;
+    const hex = 0xffff00;
+
+    if (xLevel < 0) {
+        if (!arrowNegative) {
+            arrowNegative = new THREE.ArrowHelper( electricFieldCopy, origin, length, hex );
+            scene.add(arrowNegative);
+        }
+        
+    } else if (xLevel > 0) {
+        if (!arrowPositive) {
+            arrowPositive = new THREE.ArrowHelper( electricFieldCopy, origin, length, hex );
+            scene.add(arrowPositive);
+        }    
+    } 
+   
     let acc = electricField.x;
     
-    // scatter every 6 seconds
-    if (Date.now() % 6000 < 16.7) {
-        console.log("6 sec");
-        spheres.forEach((sphere) => {
-            sphere.object.material = new THREE.MeshBasicMaterial({color: 0xFF5733});
-            setTimeout(() => {
-                sphere.object.material = new THREE.MeshBasicMaterial({color: 0xF8DE7E});
-            }, 1000);
-            sphere.velocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-        });
-    }
     // adjust velocity
+    let index = 0;
     spheres.forEach((sphere) => {
+
+         // scatter everytime scatterStartTime >= scatterTime in milliseconds
+         let currentScatterTime = (currentTime - sphere.scatterStartTime)/1000;
+         console.log("compute: " + currentScatterTime);
+         console.log("next scatter time: " + sphere.scatterTime);
+
+        if (currentScatterTime >= sphere.scatterTime) {
+            console.log("scatter");
+            scatter(sphere, index);
+        }
+        
         //if electric field is active
         const currVelocity = sphere.velocity.clone();
         if (acc !== 0) {
             const accVector = new THREE.Vector3(-acc, 0, 0); 
             currVelocity.add(accVector.multiplyScalar(time));
-        }
+        } 
+        
         
         currVelocity.normalize();
         // randomizes the electron speed
@@ -198,8 +242,19 @@ function update() {
         sphere.object.position.add(currVelocity);
         sphere.velocity = currVelocity;
         checkBounds(sphere);
+        index++;
     }); 
 	renderer.render( scene, camera );
+}
+
+function scatter(sphere, index) {
+    //reset the velocity to something random
+    sphere.velocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+
+    //reset scatter start time and next scatter time
+    sphere.scatterStartTime = performance.now();
+    sphere.scatterTime = (scatterTimeMean + (perlin.noise(index * 100, index * 200, performance.now() * 0.001) - 0.5)*0.3);
+    
 }
 
 function checkBounds(sphere) {
