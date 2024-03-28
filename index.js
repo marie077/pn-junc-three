@@ -1,6 +1,6 @@
 import * as THREE from 'https://unpkg.com/three/build/three.module.js'; 
 import { MathUtils } from 'https://unpkg.com/three/src/math/MathUtils.js';
-import { ImprovedNoise } from 'three/examples/jsm/Addons';
+import { ImprovedNoise } from 'https://unpkg.com/three/examples/jsm/math/ImprovedNoise.js';
 
 
 //scene set up variables and window variables
