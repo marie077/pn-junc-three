@@ -16,7 +16,8 @@ let minScalar = 0.22;
 let maxScalar = 0.88;
 
 //PN Junction Initial Variables
-let spheres = [];
+let electronSpheres = [];
+let holeSpheres = [];
 let cube1, cube2;
 let cubeSize = 75;
 let clock = new THREE.Clock();
@@ -128,8 +129,13 @@ function init() {
 
     // create initial electrons
     for (let i = 0; i < 50; i++) {
-        createSphere(i);
+        createSphere(i, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20);
     }
+    //create initial holes
+    // for (let i = 0; i < 50; i++) {
+    //     createSphere(i, cubeSize/2 + 20, cubeSize);
+    // }
+
 }
 
 // Function to reset GUI controls
@@ -145,21 +151,32 @@ function resetGUI() {
 
 
 // Function to create a sphere inside the cube
-function createSphere(i) {
+function createSphere(i, minPos, maxPos) {
   const geometry = new THREE.SphereGeometry(1, 32, 32);
   const material = new THREE.MeshBasicMaterial({ color: 0xF8DE7E});
   const sphere = new THREE.Mesh(geometry, material);
   
-  // Random position within the cube
+  // Random position within the cube as specified
   sphere.position.set(
-    THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 20),
-    THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 20),
-    THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 20)
+    THREE.MathUtils.randFloat(minPos, maxPos),
+    THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 1),
+    THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 1)
   );
   
-  cube1.add(sphere);
-  let randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-  spheres.push({ object: sphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+  let randomVelocity;
+  //left side of box
+//   if (maxPos < 0) {
+    // cube1.add(sphere);
+    scene.add(sphere);
+    randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+    electronSpheres.push({ object: sphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+//   }
+//   } else {
+//     cube2.add(sphere);
+//     randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+//     holeSpheres.push({ object: sphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+  
+//   }
 }
 
 
@@ -208,9 +225,9 @@ function update() {
    
     let acc = electricField.x;
     
-    // adjust velocity
+    // electron sphere movement/distribution
     let index = 0;
-    spheres.forEach((sphere) => {
+    electronSpheres.forEach((sphere) => {
 
          // scatter everytime scatterStartTime >= scatterTime in milliseconds
          let currentScatterTime = (currentTime - sphere.scatterStartTime)/1000;
@@ -241,9 +258,12 @@ function update() {
 
         sphere.object.position.add(currVelocity);
         sphere.velocity = currVelocity;
-        checkBounds(sphere);
+        checkElectronBounds(sphere, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 18);
         index++;
     }); 
+
+    //hole sphere movement/distribution
+    //TODO
 	renderer.render( scene, camera );
 }
 
@@ -257,23 +277,27 @@ function scatter(sphere, index) {
     
 }
 
-function checkBounds(sphere) {
+function checkElectronBounds(sphere, minX, maxX) {
+
+    //-30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20
     // cube boundaries
     let edge = (cubeSize/2) - 2;
     let nedge = -(edge);
     
-    if (sphere.object.position.x >= cubeSize/2 - 20) {
+    if (sphere.object.position.x >= maxX) {
         console.log('sphere greater than x pos edge');
         // sphere.object.position.x = -edge;
-        sphere.velocity.x *= -1;
-    } else if(sphere.object.position.x <= nedge){
+        sphere.object.position.x = maxX - 1;
+        sphere.velocity.multiplyScalar(-1);
+    } else if(sphere.object.position.x <= minX){
         // sphere.object.position.x = edge;
-        sphere.velocity.x *= -1;
+        sphere.object.position.x = minX + 1;
+        sphere.velocity.multiplyScalar(-1);
     }
 
     if (sphere.object.position.y >= edge) {
         console.log('sphere greater than y pos edge');
-        sphere.object.position.y = -edge;
+        sphere.object.position.y = nedge;
         // sphere.velocity.y *= -1;
     } else if (sphere.object.position.y <= nedge) {
         sphere.object.position.y = edge;
@@ -281,10 +305,10 @@ function checkBounds(sphere) {
     }
     if (sphere.object.position.z >= edge) {
         console.log('sphere greater than z pos edge');
-        sphere.object.position.z = edge;
+        sphere.object.position.z = nedge;
         // sphere.velocity.z *= -1;
     } else if (sphere.object.position.z <= nedge) {
-        sphere.object.position.z = -edge;
+        sphere.object.position.z = edge;
         // sphere.velocity.z *= -1;
     }
 }
