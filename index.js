@@ -18,6 +18,7 @@ let maxScalar = 0.88;
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
+let numSpheres = 50;
 let cube1, cube2;
 let cubeSize = 75;
 let clock = new THREE.Clock();
@@ -91,7 +92,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -13.0, 13.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -50.0, 50.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -127,14 +128,19 @@ function init() {
     cube2.position.set(30, 0, 0);
     scene.add(cube1, cube2);
 
-    // create initial electrons
-    for (let i = 0; i < 50; i++) {
-        createSphere(i, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20);
+    let randomVelocity;
+    //create initial electrons
+    for (let i = 0; i < numSpheres; i++) {
+        let electron = createSphere(i, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20, 0xF8DE7E);
+        randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+        electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
     //create initial holes
-    // for (let i = 0; i < 50; i++) {
-    //     createSphere(i, cubeSize/2 + 20, cubeSize);
-    // }
+    for (let i = 0; i < numSpheres; i++) {
+        let hole = createSphere(i, (30 - cubeSize/2) + 20, (30 + cubeSize/2) - 1, 0xFFFFFF);
+        randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+        holeSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+    }
 
 }
 
@@ -151,40 +157,24 @@ function resetGUI() {
 
 
 // Function to create a sphere inside the cube
-function createSphere(i, minPos, maxPos) {
-  const geometry = new THREE.SphereGeometry(1, 32, 32);
-  const material = new THREE.MeshBasicMaterial({ color: 0xF8DE7E});
-  const sphere = new THREE.Mesh(geometry, material);
-  
-  // Random position within the cube as specified
-  sphere.position.set(
+function createSphere(i, minPos, maxPos, sphereColor) {
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshBasicMaterial({ color: sphereColor});
+    const sphere = new THREE.Mesh(geometry, material);
+
+    // Random position within the cube as specified
+    sphere.position.set(
     THREE.MathUtils.randFloat(minPos, maxPos),
     THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 1),
     THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 1)
-  );
-  
-  let randomVelocity;
-  //left side of box
-//   if (maxPos < 0) {
-    // cube1.add(sphere);
+    );
     scene.add(sphere);
-    randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-    electronSpheres.push({ object: sphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
-//   }
-//   } else {
-//     cube2.add(sphere);
-//     randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-//     holeSpheres.push({ object: sphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
-  
-//   }
+    return sphere;
 }
 
 
 function update() {
 	requestAnimationFrame( update );
-    // let time = 0.01;
-    // let time = clock.getDelta();
-    // console.log('pre:' + time);
     let currentTime = performance.now();
     let time = clock.getDelta()/15;
     console.log("time:" + currentTime);
@@ -227,40 +217,88 @@ function update() {
     
     // electron sphere movement/distribution
     let index = 0;
-    electronSpheres.forEach((sphere) => {
+    for (let i = 0; i < numSpheres; i++) {
+        // scatter everytime scatterStartTime >= scatterTime in milliseconds
+        let currElectronScatterTime = (currentTime - electronSpheres[i].scatterStartTime)/1000;
+        let currHoleScatterTime = (currentTime - holeSpheres[i].scatterStartTime)/1000;
 
-         // scatter everytime scatterStartTime >= scatterTime in milliseconds
-         let currentScatterTime = (currentTime - sphere.scatterStartTime)/1000;
-         console.log("compute: " + currentScatterTime);
-         console.log("next scatter time: " + sphere.scatterTime);
+        console.log("compute: " + currElectronScatterTime);
+        console.log("next scatter time: " + electronSpheres[i].scatterTime);
 
-        if (currentScatterTime >= sphere.scatterTime) {
-            console.log("scatter");
-            scatter(sphere, index);
-        }
-        
-        //if electric field is active
-        const currVelocity = sphere.velocity.clone();
-        if (acc !== 0) {
-            const accVector = new THREE.Vector3(-acc, 0, 0); 
-            currVelocity.add(accVector.multiplyScalar(time));
-        } 
-        
-        
-        currVelocity.normalize();
-        // randomizes the electron speed
-        currVelocity.multiplyScalar(sphere.speed);
+       if (currElectronScatterTime >= electronSpheres[i].scatterTime) {
+           console.log("scatter");
+           scatter(electronSpheres[i], i);
+       }
+       if (currHoleScatterTime >= holeSpheres[i].scatterTime) {
+        console.log("scatter");
+        scatter(holeSpheres[i], i);
+    }
        
-        // Apply a minimum velocity threshold
-        const minVelocity = 0.2;
-        const maxVelocity = 0.6;
-        currVelocity.clampLength(minVelocity, maxVelocity);
+       //if electric field is active
+       const currElectronVelocity = electronSpheres[i].velocity.clone();
+       const currHoleVelocity = holeSpheres[i].velocity.clone();
 
-        sphere.object.position.add(currVelocity);
-        sphere.velocity = currVelocity;
-        checkElectronBounds(sphere, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 18);
-        index++;
-    }); 
+       if (acc !== 0) {
+           const accVectorElectron = new THREE.Vector3(-acc, 0, 0); 
+           const accVectorHole = new THREE.Vector3(acc, 0, 0); 
+           currHoleVelocity.add(accVectorHole.multiplyScalar(time));
+           currElectronVelocity.add(accVectorElectron.multiplyScalar(time));
+       } 
+       currElectronVelocity.normalize();
+       currHoleVelocity.normalize();
+
+       // randomizes the electron speed
+       currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
+       currHoleVelocity.multiplyScalar(electronSpheres[i].speed);
+
+      
+       // Apply a minimum velocity threshold
+       const minVelocity = 0.2;
+       const maxVelocity = 0.6;
+       currElectronVelocity.clampLength(minVelocity, maxVelocity);
+       currHoleVelocity.clampLength(minVelocity, maxVelocity);
+
+
+       electronSpheres[i].object.position.add(currElectronVelocity);
+       electronSpheres[i].velocity = currElectronVelocity;
+
+       holeSpheres[i].object.position.add(currHoleVelocity);
+       holeSpheres[i].velocity = currHoleVelocity;
+
+       checkBounds(electronSpheres[i], holeSpheres[i], -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 18, 30 - (cubeSize/2) + 18, 30 + (cubeSize/2) - 1);
+    }
+    // electronSpheres.forEach((sphere) => {
+
+    //      // scatter everytime scatterStartTime >= scatterTime in milliseconds
+    //      let currentScatterTime = (currentTime - sphere.scatterStartTime)/1000;
+    //      console.log("compute: " + currentScatterTime);
+    //      console.log("next scatter time: " + sphere.scatterTime);
+
+    //     if (currentScatterTime >= sphere.scatterTime) {
+    //         console.log("scatter");
+    //         scatter(sphere, index);
+    //     }
+        
+    //     //if electric field is active
+    //     const currVelocity = sphere.velocity.clone();
+    //     if (acc !== 0) {
+    //         const accVector = new THREE.Vector3(-acc, 0, 0); 
+    //         currVelocity.add(accVector.multiplyScalar(time));
+    //     } 
+    //     currVelocity.normalize();
+    //     // randomizes the electron speed
+    //     currVelocity.multiplyScalar(sphere.speed);
+       
+    //     // Apply a minimum velocity threshold
+    //     const minVelocity = 0.2;
+    //     const maxVelocity = 0.6;
+    //     currVelocity.clampLength(minVelocity, maxVelocity);
+
+    //     sphere.object.position.add(currVelocity);
+    //     sphere.velocity = currVelocity;
+    //     checkElectronBounds(sphere, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 18);
+    //     index++;
+    // }); 
 
     //hole sphere movement/distribution
     //TODO
@@ -277,38 +315,68 @@ function scatter(sphere, index) {
     
 }
 
-function checkElectronBounds(sphere, minX, maxX) {
+function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
 
     //-30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20
     // cube boundaries
     let edge = (cubeSize/2) - 2;
     let nedge = -(edge);
     
-    if (sphere.object.position.x >= maxX) {
+    if (sphere1.object.position.x >= maxX1) {
         console.log('sphere greater than x pos edge');
         // sphere.object.position.x = -edge;
-        sphere.object.position.x = maxX - 1;
-        sphere.velocity.multiplyScalar(-1);
-    } else if(sphere.object.position.x <= minX){
+        sphere1.object.position.x = maxX1 - 1;
+        sphere1.velocity.multiplyScalar(-1);
+    } else if(sphere1.object.position.x <= minX1){
         // sphere.object.position.x = edge;
-        sphere.object.position.x = minX + 1;
-        sphere.velocity.multiplyScalar(-1);
+        sphere1.object.position.x = minX1 + 1;
+        sphere1.velocity.multiplyScalar(-1);
     }
 
-    if (sphere.object.position.y >= edge) {
+    if (sphere2.object.position.x >= maxX2) {
+        console.log('sphere greater than x pos edge');
+        // sphere.object.position.x = -edge;
+        sphere2.object.position.x = maxX2 - 1;
+        sphere2.velocity.multiplyScalar(-1);
+    } else if(sphere2.object.position.x <= minX2){
+        // sphere.object.position.x = edge;
+        sphere2.object.position.x = minX2 + 1;
+        sphere2.velocity.multiplyScalar(-1);
+    }
+
+    if (sphere1.object.position.y >= edge) {
         console.log('sphere greater than y pos edge');
-        sphere.object.position.y = nedge;
+        sphere1.object.position.y = nedge;
         // sphere.velocity.y *= -1;
-    } else if (sphere.object.position.y <= nedge) {
-        sphere.object.position.y = edge;
+    } else if (sphere1.object.position.y <= nedge) {
+        sphere1.object.position.y = edge;
         // sphere.velocity.y *= -1;
     }
-    if (sphere.object.position.z >= edge) {
+
+    if (sphere2.object.position.y >= edge) {
+        console.log('sphere greater than y pos edge');
+        sphere2.object.position.y = nedge;
+        // sphere.velocity.y *= -1;
+    } else if (sphere2.object.position.y <= nedge) {
+        sphere2.object.position.y = edge;
+        // sphere.velocity.y *= -1;
+    }
+
+    if (sphere1.object.position.z >= edge) {
         console.log('sphere greater than z pos edge');
-        sphere.object.position.z = nedge;
+        sphere1.object.position.z = nedge;
         // sphere.velocity.z *= -1;
-    } else if (sphere.object.position.z <= nedge) {
-        sphere.object.position.z = edge;
+    } else if (sphere1.object.position.z <= nedge) {
+        sphere1.object.position.z = edge;
+        // sphere.velocity.z *= -1;
+    }
+
+    if (sphere2.object.position.z >= edge) {
+        console.log('sphere greater than z pos edge');
+        sphere2.object.position.z = nedge;
+        // sphere.velocity.z *= -1;
+    } else if (sphere2.object.position.z <= nedge) {
+        sphere2.object.position.z = edge;
         // sphere.velocity.z *= -1;
     }
 }
