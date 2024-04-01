@@ -20,7 +20,7 @@ let electronSpheres = [];
 let holeSpheres = [];
 let numSpheres = 50;
 let cube1, cube2;
-let cubeSize = 75;
+let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
 let xLevel = 0.0;
 
@@ -119,25 +119,31 @@ function init() {
     // scene.background = textureCube;
 
     // create cube container
-    const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+    const cubeGeometry = new THREE.BoxGeometry(cubeSize.x, cubeSize.y, cubeSize.z);
     const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x808080, wireframe: true, transparent: true, opacity: 0.1});
     cube1 = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    cube2 = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    // inner cube
+    const innerCubeGeometry = new THREE.BoxGeometry(25, cubeSize.y, cubeSize.z);
+    const innerCubeMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, wireframe: false, transparent: true, opacity: 0.1});
+
+    let innerCube = new THREE.Mesh(innerCubeGeometry, innerCubeMaterial);
+    // cube2 = new THREE.Mesh(cubeGeometry, cubeMaterial);
     //later position should be a param
-    cube1.position.set(-30, 0, 0);
-    cube2.position.set(30, 0, 0);
-    scene.add(cube1, cube2);
+    cube1.position.set(0, 0, 0);
+    innerCube.position.set(0, 0, 0);
+    // cube2.position.set(30, 0, 0);
+    scene.add(cube1, innerCube);
 
     let randomVelocity;
     //create initial electrons
     for (let i = 0; i < numSpheres; i++) {
-        let electron = createSphere(i, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20, 0xF8DE7E);
+        let electron = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xF8DE7E);
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
         electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
     //create initial holes
     for (let i = 0; i < numSpheres; i++) {
-        let hole = createSphere(i, (30 - cubeSize/2) + 20, (30 + cubeSize/2) - 1, 0xFFFFFF);
+        let hole = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xFFFFFF);
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
         holeSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
@@ -165,8 +171,8 @@ function createSphere(i, minPos, maxPos, sphereColor) {
     // Random position within the cube as specified
     sphere.position.set(
     THREE.MathUtils.randFloat(minPos, maxPos),
-    THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 1),
-    THREE.MathUtils.randFloat(-cubeSize/2 + 1, cubeSize/2 - 1)
+    THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1),
+    THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1)
     );
     scene.add(sphere);
     return sphere;
@@ -265,7 +271,11 @@ function update() {
        holeSpheres[i].object.position.add(currHoleVelocity);
        holeSpheres[i].velocity = currHoleVelocity;
 
-       checkBounds(electronSpheres[i], holeSpheres[i], -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 18, 30 - (cubeSize/2) + 18, 30 + (cubeSize/2) - 1);
+       let eBoundsMin = -(cubeSize.x/2) + 1;
+       let eBoundsMax = 3;
+       let hBoundsMin = -3;
+       let hBoundsMax = (cubeSize.x/2) - 1;
+       checkBounds(electronSpheres[i], holeSpheres[i], eBoundsMin, eBoundsMax, hBoundsMin, hBoundsMax);
     }
     // electronSpheres.forEach((sphere) => {
 
@@ -319,8 +329,10 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
 
     //-30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20
     // cube boundaries
-    let edge = (cubeSize/2) - 2;
-    let nedge = -(edge);
+    let yedge = (cubeSize.y/2);
+    let ynedge = -(yedge);
+    let zedge = (cubeSize.z/2);
+    let znedge = -(zedge);
     
     if (sphere1.object.position.x >= maxX1) {
         console.log('sphere greater than x pos edge');
@@ -344,39 +356,39 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
         sphere2.velocity.multiplyScalar(-1);
     }
 
-    if (sphere1.object.position.y >= edge) {
+    if (sphere1.object.position.y > yedge) {
         console.log('sphere greater than y pos edge');
-        sphere1.object.position.y = nedge;
+        sphere1.object.position.y = ynedge;
         // sphere.velocity.y *= -1;
-    } else if (sphere1.object.position.y <= nedge) {
-        sphere1.object.position.y = edge;
+    } else if (sphere1.object.position.y < ynedge) {
+        sphere1.object.position.y = yedge;
         // sphere.velocity.y *= -1;
     }
 
-    if (sphere2.object.position.y >= edge) {
+    if (sphere2.object.position.y > yedge) {
         console.log('sphere greater than y pos edge');
-        sphere2.object.position.y = nedge;
+        sphere2.object.position.y = ynedge;
         // sphere.velocity.y *= -1;
-    } else if (sphere2.object.position.y <= nedge) {
-        sphere2.object.position.y = edge;
+    } else if (sphere2.object.position.y < ynedge) {
+        sphere2.object.position.y = yedge;
         // sphere.velocity.y *= -1;
     }
 
-    if (sphere1.object.position.z >= edge) {
+    if (sphere1.object.position.z > zedge) {
         console.log('sphere greater than z pos edge');
-        sphere1.object.position.z = nedge;
+        sphere1.object.position.z = znedge;
         // sphere.velocity.z *= -1;
-    } else if (sphere1.object.position.z <= nedge) {
-        sphere1.object.position.z = edge;
+    } else if (sphere1.object.position.z < znedge) {
+        sphere1.object.position.z = zedge;
         // sphere.velocity.z *= -1;
     }
 
-    if (sphere2.object.position.z >= edge) {
+    if (sphere2.object.position.z > zedge) {
         console.log('sphere greater than z pos edge');
-        sphere2.object.position.z = nedge;
+        sphere2.object.position.z = znedge;
         // sphere.velocity.z *= -1;
-    } else if (sphere2.object.position.z <= nedge) {
-        sphere2.object.position.z = edge;
+    } else if (sphere2.object.position.z < znedge) {
+        sphere2.object.position.z = zedge;
         // sphere.velocity.z *= -1;
     }
 }
