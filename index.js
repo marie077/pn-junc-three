@@ -63,21 +63,9 @@ function init() {
         rotateY: MathUtils.degToRad(0),
     };
 
-    initialCameraControls = {
-        translateZ : 116,
-        translateX: 0,
-        rotateY: MathUtils.degToRad(0),
-    };
-
     electricFieldControl = {
         x: 0.0,
     };
-
-    initialElectricFieldControl = {
-        x: 0.0,
-    };
-
-
 
     const resetButton = { 'Reset Cube': resetGUI };
 
@@ -92,7 +80,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -50.0, 50.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -5.0, 5.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -119,14 +107,16 @@ function init() {
     // scene.background = textureCube;
 
     // create cube container
-    const cubeGeometry = new THREE.BoxGeometry(cubeSize.x, cubeSize.y, cubeSize.z);
-    const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x808080, wireframe: true, transparent: true, opacity: 0.1});
-    cube1 = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    const cubeGeometry = box(cubeSize.x, cubeSize.y, cubeSize.z);
+    const cubeMaterial = new THREE.LineDashedMaterial({ color: 0xFFFFFF, dashSize: 3, gapSize: 1});
+    cube1 = new THREE.LineSegments(cubeGeometry, cubeMaterial);
+    cube1.computeLineDistances();
     // inner cube
-    const innerCubeGeometry = new THREE.BoxGeometry(25, cubeSize.y, cubeSize.z);
-    const innerCubeMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, wireframe: false, transparent: true, opacity: 0.1});
+    const innerCubeGeometry = box(25, cubeSize.y, cubeSize.z);
+    const innerCubeMaterial = new THREE.LineDashedMaterial({ color: 0xFF0000, dashSize: 3, gapSize: 1});
 
-    let innerCube = new THREE.Mesh(innerCubeGeometry, innerCubeMaterial);
+    let innerCube = new THREE.LineSegments(innerCubeGeometry, innerCubeMaterial);
+    innerCube.computeLineDistances();
     // cube2 = new THREE.Mesh(cubeGeometry, cubeMaterial);
     //later position should be a param
     cube1.position.set(0, 0, 0);
@@ -150,13 +140,69 @@ function init() {
 
 }
 
+function box( width, height, depth ) {
+
+    width = width * 0.5,
+    height = height * 0.5,
+    depth = depth * 0.5;
+
+    const geometry = new THREE.BufferGeometry();
+    const position = [];
+
+    position.push(
+        - width, - height, - depth,
+        - width, height, - depth,
+
+        - width, height, - depth,
+        width, height, - depth,
+
+        width, height, - depth,
+        width, - height, - depth,
+
+        width, - height, - depth,
+        - width, - height, - depth,
+
+        - width, - height, depth,
+        - width, height, depth,
+
+        - width, height, depth,
+        width, height, depth,
+
+        width, height, depth,
+        width, - height, depth,
+
+        width, - height, depth,
+        - width, - height, depth,
+
+        - width, - height, - depth,
+        - width, - height, depth,
+
+        - width, height, - depth,
+        - width, height, depth,
+
+        width, height, - depth,
+        width, height, depth,
+
+        width, - height, - depth,
+        width, - height, depth
+     );
+
+    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( position, 3 ) );
+
+    return geometry;
+
+}
+
+
 // Function to reset GUI controls
 function resetGUI() {
     console.log('reset attempted');
-    Object.assign(cameraControls, initialCameraControls, electricFieldControl, initialElectricFieldControl);
+    Object.assign(cameraControls, electricFieldControl);
+        electricFieldControl.x = 0;
         camera.position.x = 0;
         camera.rotation.y = MathUtils.degToRad(0);
         camera.position.z = 116; 
+        xLevel = 0;
     gui.updateDisplay(); // Update GUI to reflect the changes
 }
 
