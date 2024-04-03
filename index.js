@@ -80,7 +80,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -5.0, 5.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -15.0, 15.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -127,15 +127,28 @@ function init() {
     let randomVelocity;
     //create initial electrons
     for (let i = 0; i < numSpheres; i++) {
-        let electron = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xF8DE7E);
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-        electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+         // two high energy holes of high energy
+        // if (i == 17 || i == 25) {
+        //     let hole = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xFFFFFF);
+        //     electronSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: true}); 
+        // } else {
+            let electron = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xF8DE7E);
+            electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
+        // }
     }
+
     //create initial holes
     for (let i = 0; i < numSpheres; i++) {
-        let hole = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xFFFFFF);
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-        holeSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        // two high energy electron generated on other side.
+        // if (i == 17 || i == 25) {
+        //     let electron = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xF8DE7E);
+        //     holeSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: true}); 
+        // } else {
+            let hole = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xFFFFFF);
+            holeSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        // }
     }
 
 }
