@@ -18,7 +18,7 @@ let maxScalar = 0.88;
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
-let numSpheres = 50;
+let numSpheres = 100;
 let cube1, cube2;
 let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
@@ -27,6 +27,11 @@ let xLevel = 0.0;
 //electric field attributes
 let arrowNegative;
 let arrowPositive;
+let innerBoxSize = 25;
+let innerCubeGeometry;
+let innerCubeMaterial;
+let innerCube;
+
 
 //scatter variables
 let scatterTimeMean = 2;
@@ -80,7 +85,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -15.0, 15.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -7.0, 0.3).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -111,18 +116,15 @@ function init() {
     const cubeMaterial = new THREE.LineDashedMaterial({ color: 0xFFFFFF, dashSize: 3, gapSize: 1});
     cube1 = new THREE.LineSegments(cubeGeometry, cubeMaterial);
     cube1.computeLineDistances();
-    // inner cube
-    const innerCubeGeometry = box(25, cubeSize.y, cubeSize.z);
-    const innerCubeMaterial = new THREE.LineDashedMaterial({ color: 0xFF0000, dashSize: 3, gapSize: 1});
-
-    let innerCube = new THREE.LineSegments(innerCubeGeometry, innerCubeMaterial);
-    innerCube.computeLineDistances();
+  
     // cube2 = new THREE.Mesh(cubeGeometry, cubeMaterial);
     //later position should be a param
     cube1.position.set(0, 0, 0);
-    innerCube.position.set(0, 0, 0);
+    
+    // if I want to make a new inner cube i guess I would have to remove and then add back to the scene
+
     // cube2.position.set(30, 0, 0);
-    scene.add(cube1, innerCube);
+    scene.add(cube1);
 
     let randomVelocity;
     //create initial electrons
@@ -133,8 +135,8 @@ function init() {
         //     let hole = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xFFFFFF);
         //     electronSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: true}); 
         // } else {
-            let electron = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xF8DE7E);
-            electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
+            let holes = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xFFFFFF);
+            holeSpheres.push({ object: holes, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
         // }
     }
 
@@ -146,8 +148,8 @@ function init() {
         //     let electron = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xF8DE7E);
         //     holeSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: true}); 
         // } else {
-            let hole = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xFFFFFF);
-            holeSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+            let electron = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xF8DE7E);
+            electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
         // }
     }
 
@@ -244,6 +246,37 @@ function update() {
     let time = clock.getDelta()/15;
     console.log("time:" + currentTime);
 
+    // update inner box size based on electric field
+    innerBoxSize = (50 - (xLevel * 10));
+    let minInnerBoxSize = 40;
+    let maxInnerBoxSize = 100;
+
+    if (xLevel >= 0) {
+        // When the electric field is positive, make the inner box slightly smaller than the original size
+        innerBoxSize = Math.max(minInnerBoxSize, 50 - (xLevel * 5)); // Adjust the scaling factor as desired
+    } else if (xLevel <= 0) {
+        innerBoxSize = Math.min(maxInnerBoxSize, 50 - (xLevel * 5));
+    
+    } else {
+        // When the electric field is negative, make the inner box larger
+        innerBoxSize = 50 + (Math.abs(xLevel) * 10); // Adjust the scaling factor as desired
+    }
+
+    
+    scene.remove(innerCube);
+
+    // inner cubes
+    innerCubeGeometry = box(innerBoxSize, cubeSize.y, cubeSize.z);
+    innerCubeMaterial = new THREE.LineDashedMaterial({ color: 0xFF0000, dashSize: 3, gapSize: 1});
+
+    innerCube = new THREE.LineSegments(innerCubeGeometry, innerCubeMaterial);
+    innerCube.computeLineDistances();
+    
+    innerCube.position.set(0, 0, 0);
+
+    scene.add(innerCube);
+    
+   
     if (xLevel === 0) {
         scene.remove(arrowNegative);
         scene.remove(arrowPositive);
@@ -281,7 +314,6 @@ function update() {
     let acc = electricField.x;
     
     // electron sphere movement/distribution
-    let index = 0;
     for (let i = 0; i < numSpheres; i++) {
         // scatter everytime scatterStartTime >= scatterTime in milliseconds
         let currElectronScatterTime = (currentTime - electronSpheres[i].scatterStartTime)/1000;
@@ -314,7 +346,7 @@ function update() {
 
        // randomizes the electron speed
        currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
-       currHoleVelocity.multiplyScalar(electronSpheres[i].speed);
+       currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
 
       
        // Apply a minimum velocity threshold
@@ -330,47 +362,13 @@ function update() {
        holeSpheres[i].object.position.add(currHoleVelocity);
        holeSpheres[i].velocity = currHoleVelocity;
 
-       let eBoundsMin = -(cubeSize.x/2) + 1;
-       let eBoundsMax = 3;
-       let hBoundsMin = -3;
-       let hBoundsMax = (cubeSize.x/2) - 1;
-       checkBounds(electronSpheres[i], holeSpheres[i], eBoundsMin, eBoundsMax, hBoundsMin, hBoundsMax);
+       let hBoundsMin = -(cubeSize.x/2) + 1;
+       let hBoundsMax = 35;
+       let eBoundsMin = -35;
+       let eBoundsMax = (cubeSize.x/2) - 1;
+    
+       checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
     }
-    // electronSpheres.forEach((sphere) => {
-
-    //      // scatter everytime scatterStartTime >= scatterTime in milliseconds
-    //      let currentScatterTime = (currentTime - sphere.scatterStartTime)/1000;
-    //      console.log("compute: " + currentScatterTime);
-    //      console.log("next scatter time: " + sphere.scatterTime);
-
-    //     if (currentScatterTime >= sphere.scatterTime) {
-    //         console.log("scatter");
-    //         scatter(sphere, index);
-    //     }
-        
-    //     //if electric field is active
-    //     const currVelocity = sphere.velocity.clone();
-    //     if (acc !== 0) {
-    //         const accVector = new THREE.Vector3(-acc, 0, 0); 
-    //         currVelocity.add(accVector.multiplyScalar(time));
-    //     } 
-    //     currVelocity.normalize();
-    //     // randomizes the electron speed
-    //     currVelocity.multiplyScalar(sphere.speed);
-       
-    //     // Apply a minimum velocity threshold
-    //     const minVelocity = 0.2;
-    //     const maxVelocity = 0.6;
-    //     currVelocity.clampLength(minVelocity, maxVelocity);
-
-    //     sphere.object.position.add(currVelocity);
-    //     sphere.velocity = currVelocity;
-    //     checkElectronBounds(sphere, -30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 18);
-    //     index++;
-    // }); 
-
-    //hole sphere movement/distribution
-    //TODO
 	renderer.render( scene, camera );
 }
 
