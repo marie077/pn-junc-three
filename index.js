@@ -85,7 +85,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -7.0, 0.3).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -10.0, 3.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -96,35 +96,29 @@ function init() {
 
     // window resize handler
     window.addEventListener( 'resize', onWindowResize );
-  
-    //background
-    //3d cube texture
-    // const path = 'Textures/Cube/Pisa/';
-    // const format = '.png';
-    // const urls = [
-    // path + 'Px' + format, path + 'Nx' + format,
-    // path + 'Py' + format, path + 'Ny' + format,
-    // path + 'Pz' + format, path + 'Nz' + format
-    // ];
-
-    // const textureCube = new THREE.CubeTextureLoader().load( urls );
-    //add background to scene
-    // scene.background = textureCube;
 
     // create cube container
     const cubeGeometry = box(cubeSize.x, cubeSize.y, cubeSize.z);
     const cubeMaterial = new THREE.LineDashedMaterial({ color: 0xFFFFFF, dashSize: 3, gapSize: 1});
     cube1 = new THREE.LineSegments(cubeGeometry, cubeMaterial);
     cube1.computeLineDistances();
-  
-    // cube2 = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    //later position should be a param
     cube1.position.set(0, 0, 0);
-    
-    // if I want to make a new inner cube i guess I would have to remove and then add back to the scene
 
-    // cube2.position.set(30, 0, 0);
-    scene.add(cube1);
+    // create a plane in the middle to separate P type and N type
+    const planeGeo = new THREE.PlaneGeometry(cubeSize.z, cubeSize.y);
+    const planeMaterial = new THREE.LineDashedMaterial({
+        color: 0xffffff,
+        dashSize: 3,
+        gapSize: 1,
+    });
+    // const planeMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF, side: THREE.DoubleSide, transparent: true} );
+    let plane = new THREE.LineSegments(planeGeo, planeMaterial);
+    plane.computeLineDistances();
+    plane.position.set(0, 0, 0);
+    plane.rotateY(Math.PI/2);
+
+
+    scene.add(cube1, plane);
 
     let randomVelocity;
     //create initial electrons
@@ -251,30 +245,32 @@ function update() {
     let minInnerBoxSize = 40;
     let maxInnerBoxSize = 100;
 
-    if (xLevel >= 0) {
-        // When the electric field is positive, make the inner box slightly smaller than the original size
-        innerBoxSize = Math.max(minInnerBoxSize, 50 - (xLevel * 5)); // Adjust the scaling factor as desired
-    } else if (xLevel <= 0) {
-        innerBoxSize = Math.min(maxInnerBoxSize, 50 - (xLevel * 5));
-    
-    } else {
-        // When the electric field is negative, make the inner box larger
-        innerBoxSize = 50 + (Math.abs(xLevel) * 10); // Adjust the scaling factor as desired
-    }
-
-    
     scene.remove(innerCube);
-
-    // inner cubes
-    innerCubeGeometry = box(innerBoxSize, cubeSize.y, cubeSize.z);
-    innerCubeMaterial = new THREE.LineDashedMaterial({ color: 0xFF0000, dashSize: 3, gapSize: 1});
-
-    innerCube = new THREE.LineSegments(innerCubeGeometry, innerCubeMaterial);
-    innerCube.computeLineDistances();
     
-    innerCube.position.set(0, 0, 0);
-
-    scene.add(innerCube);
+    if (xLevel != 0) {
+        if (xLevel >= 0) {
+            // When the electric field is positive, make the inner box slightly smaller than the original size
+            innerBoxSize = Math.max(minInnerBoxSize, 50 - (xLevel * 5)); // Adjust the scaling factor as desired
+        } else if (xLevel <= 0) {
+            innerBoxSize = Math.min(maxInnerBoxSize, 50 - (xLevel * 5));
+        
+        } else {
+            // When the electric field is negative, make the inner box larger
+            innerBoxSize = 50 + (Math.abs(xLevel) * 10); // Adjust the scaling factor as desired
+        }
+    
+        // inner cubes
+        innerCubeGeometry = box(innerBoxSize, cubeSize.y, cubeSize.z);
+        innerCubeMaterial = new THREE.LineDashedMaterial({ color: 0xFF0000, dashSize: 3, gapSize: 1});
+    
+        innerCube = new THREE.LineSegments(innerCubeGeometry, innerCubeMaterial);
+        innerCube.computeLineDistances();
+        
+        innerCube.position.set(0, 0, 0);
+    
+        scene.add(innerCube);
+    }
+   
     
    
     if (xLevel === 0) {
@@ -363,8 +359,8 @@ function update() {
        holeSpheres[i].velocity = currHoleVelocity;
 
        let hBoundsMin = -(cubeSize.x/2) + 1;
-       let hBoundsMax = 35;
-       let eBoundsMin = -35;
+       let hBoundsMax = (cubeSize.x/2) - 1;
+       let eBoundsMin = -(cubeSize.x/2) + 1;
        let eBoundsMax = (cubeSize.x/2) - 1;
     
        checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
