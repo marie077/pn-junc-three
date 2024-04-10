@@ -1,25 +1,22 @@
 import * as THREE from 'https://unpkg.com/three/build/three.module.js'; 
 import { MathUtils } from 'https://unpkg.com/three/src/math/MathUtils.js';
 import { ImprovedNoise } from 'https://unpkg.com/three/examples/jsm/math/ImprovedNoise.js';
-
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
-let mouseX = 0;
-let mouseY = 0;
 let electricFieldControl;
 let cameraControls;
-let initialCameraControls;
-let initialElectricFieldControl;
 let gui;
 let minScalar = 0.22;
 let maxScalar = 0.88;
+let shouldAnimate = false;
 
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
 let numSpheres = 100;
-let cube1, cube2;
+let cube1;
 let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
 let xLevel = 0.0;
@@ -41,7 +38,6 @@ const perlin = new ImprovedNoise();
 // document.addEventListener( 'mousemove', onDocumentMouseMove );
 init();
 update();
-
 
 function init() {
     //camera, background textures, background, scene, initial geometry, materials, renderer
@@ -121,32 +117,58 @@ function init() {
     scene.add(cube1, plane);
 
     let randomVelocity;
-    //create initial electrons
+    //create initial holes and acceptors
     for (let i = 0; i < numSpheres; i++) {
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-         // two high energy holes of high energy
-        // if (i == 17 || i == 25) {
-        //     let hole = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xFFFFFF);
-        //     electronSpheres.push({ object: hole, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: true}); 
-        // } else {
-            let holes = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xFFFFFF);
-            holeSpheres.push({ object: holes, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
-        // }
+        let holes = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xE3735E);
+        createIon(-(cubeSize.x/2) + 1, -2, 0x6495ED, 'acceptor');
+        holeSpheres.push({ object: holes, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false})
     }
 
-    //create initial holes
+    //create initial electrons and donors
     for (let i = 0; i < numSpheres; i++) {
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-        // two high energy electron generated on other side.
-        // if (i == 17 || i == 25) {
-        //     let electron = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xF8DE7E);
-        //     holeSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: true}); 
-        // } else {
-            let electron = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0xF8DE7E);
-            electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
-        // }
+        createIon(2, (cubeSize.x/2) - 1, 0xC70039, 'donor');
+        let electron = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0x71bbd4);
+        electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
 
+    //waits for two seconds before electrons and holes diffuse
+    setTimeout(() => {
+        shouldAnimate = true;
+    }, 4000);
+}
+
+function createIon(minx, maxx, color, ionType) {
+    let capsuleLength = 3;
+    let radius = 0.5;
+    const geometry = new THREE.CapsuleGeometry(radius, capsuleLength);
+    //negative shape
+    if (ionType == "acceptor") {
+        let material = new THREE.MeshBasicMaterial({color: color, transparent: true, opacity: 0.5});
+        let acceptor = new THREE.Mesh(geometry, material);
+        // acceptor.rotateX(Math.PI/2);
+        acceptor.rotateZ(Math.PI/2);
+        acceptor.position.set(
+            THREE.MathUtils.randFloat(minx, maxx),
+            THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1),
+            THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1)
+        );
+        scene.add(acceptor);
+    } else if (ionType == 'donor') { //positive shape
+        //create second geometry for plus shape
+        let geometry2 = new THREE.CapsuleGeometry(radius, capsuleLength);
+        geometry2.rotateZ(Math.PI/2);  
+        let mergedGeometry = new BufferGeometryUtils.mergeGeometries([geometry, geometry2]);
+        let material = new THREE.MeshBasicMaterial({color: color, transparent: true,  opacity: 0.5});
+        let donor = new THREE.Mesh(mergedGeometry, material);
+        donor.position.set(
+            THREE.MathUtils.randFloat(minx, maxx),
+            THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1),
+            THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1)
+        );
+        scene.add(donor);
+    }
 }
 
 function box( width, height, depth ) {
@@ -315,9 +337,6 @@ function update() {
         let currElectronScatterTime = (currentTime - electronSpheres[i].scatterStartTime)/1000;
         let currHoleScatterTime = (currentTime - holeSpheres[i].scatterStartTime)/1000;
 
-        console.log("compute: " + currElectronScatterTime);
-        console.log("next scatter time: " + electronSpheres[i].scatterTime);
-
        if (currElectronScatterTime >= electronSpheres[i].scatterTime) {
            console.log("scatter");
            scatter(electronSpheres[i], i);
@@ -350,7 +369,6 @@ function update() {
        const maxVelocity = 0.6;
        currElectronVelocity.clampLength(minVelocity, maxVelocity);
        currHoleVelocity.clampLength(minVelocity, maxVelocity);
-
 
        electronSpheres[i].object.position.add(currElectronVelocity);
        electronSpheres[i].velocity = currElectronVelocity;
@@ -386,7 +404,15 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
     let ynedge = -(yedge);
     let zedge = (cubeSize.z/2);
     let znedge = -(zedge);
-    
+    let tempMaxX1 = -2;
+    let tempMinX2 = 2;
+    if (shouldAnimate) {
+        maxX1 = maxX1;
+        minX2 = minX2;
+    } else {
+        maxX1 = tempMaxX1;
+        minX2 = tempMinX2;
+    }
     if (sphere1.object.position.x >= maxX1) {
         console.log('sphere greater than x pos edge');
         // sphere.object.position.x = -edge;
