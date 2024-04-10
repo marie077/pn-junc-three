@@ -145,7 +145,7 @@ function createIon(minx, maxx, color, ionType) {
     const geometry = new THREE.CapsuleGeometry(radius, capsuleLength);
     //negative shape
     if (ionType == "acceptor") {
-        let material = new THREE.MeshBasicMaterial({color: color, transparent: true, opacity: 0.5});
+        let material = new THREE.MeshBasicMaterial({color: color, transparent: true, opacity: 0.4});
         let acceptor = new THREE.Mesh(geometry, material);
         // acceptor.rotateX(Math.PI/2);
         acceptor.rotateZ(Math.PI/2);
@@ -160,7 +160,7 @@ function createIon(minx, maxx, color, ionType) {
         let geometry2 = new THREE.CapsuleGeometry(radius, capsuleLength);
         geometry2.rotateZ(Math.PI/2);  
         let mergedGeometry = new BufferGeometryUtils.mergeGeometries([geometry, geometry2]);
-        let material = new THREE.MeshBasicMaterial({color: color, transparent: true,  opacity: 0.5});
+        let material = new THREE.MeshBasicMaterial({color: color, transparent: true,  opacity: 0.4});
         let donor = new THREE.Mesh(mergedGeometry, material);
         donor.position.set(
             THREE.MathUtils.randFloat(minx, maxx),
