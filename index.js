@@ -1,8 +1,7 @@
 import * as THREE from 'https://unpkg.com/three/build/three.module.js'; 
 import { MathUtils } from 'https://unpkg.com/three/src/math/MathUtils.js';
 import { ImprovedNoise } from 'https://unpkg.com/three/examples/jsm/math/ImprovedNoise.js';
-// import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import * as BufferGeometryUtils from '/node_modules/.vite/deps/three_examples_jsm_utils_BufferGeometryUtils__js.js?v=5d0250e0';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
