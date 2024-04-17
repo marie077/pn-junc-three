@@ -81,7 +81,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -10.0, 3.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -10.0, 10.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -120,7 +120,7 @@ function init() {
     //create initial holes and acceptors
     for (let i = 0; i < numSpheres; i++) {
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-        let holes = createSphere(i, -30 - (cubeSize.x/2) + 1, -30 + (cubeSize.x/2) - 20, 0xE3735E);
+        let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xE3735E);
         createIon(-(cubeSize.x/2) + 1, -2, 0x6495ED, 'acceptor');
         holeSpheres.push({ object: holes, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false})
     }
@@ -129,7 +129,7 @@ function init() {
     for (let i = 0; i < numSpheres; i++) {
         randomVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
         createIon(2, (cubeSize.x/2) - 1, 0xC70039, 'donor');
-        let electron = createSphere(i, (30 - cubeSize.x/2) + 20, (30 + cubeSize.x/2) - 1, 0x71bbd4);
+        let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x71bbd4);
         electronSpheres.push({ object: electron, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
 
@@ -404,8 +404,8 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
     let ynedge = -(yedge);
     let zedge = (cubeSize.z/2);
     let znedge = -(zedge);
-    let tempMaxX1 = -2;
-    let tempMinX2 = 2;
+    let tempMaxX1 = -4;
+    let tempMinX2 = 4;
     if (shouldAnimate) {
         maxX1 = maxX1;
         minX2 = minX2;
@@ -415,60 +415,56 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
     }
     if (sphere1.object.position.x >= maxX1) {
         console.log('sphere greater than x pos edge');
-        // sphere.object.position.x = -edge;
-        sphere1.object.position.x = maxX1 - 1;
-        sphere1.velocity.multiplyScalar(-1);
-    } else if(sphere1.object.position.x <= minX1){
-        // sphere.object.position.x = edge;
         sphere1.object.position.x = minX1 + 1;
-        sphere1.velocity.multiplyScalar(-1);
+        // sphere1.velocity.multiplyScalar(-1);
+    } else if(sphere1.object.position.x <= minX1){
+        sphere1.object.position.x = THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, -2);
+        // sphere1.velocity.multiplyScalar(-1);
     }
 
     if (sphere2.object.position.x >= maxX2) {
         console.log('sphere greater than x pos edge');
-        // sphere.object.position.x = -edge;
-        sphere2.object.position.x = maxX2 - 1;
-        sphere2.velocity.multiplyScalar(-1);
+        sphere2.object.position.x = THREE.MathUtils.randFloat(2, cubeSize.x/2 - 1);
+        // sphere2.velocity.multiplyScalar(-1);
     } else if(sphere2.object.position.x <= minX2){
-        // sphere.object.position.x = edge;
-        sphere2.object.position.x = minX2 + 1;
-        sphere2.velocity.multiplyScalar(-1);
+        sphere2.object.position.x = maxX2 - 1;
+        // sphere2.velocity.multiplyScalar(-1);
     }
 
     if (sphere1.object.position.y > yedge) {
         console.log('sphere greater than y pos edge');
-        sphere1.object.position.y = ynedge;
-        // sphere.velocity.y *= -1;
+        sphere1.object.position.y = yedge - 1;
+        sphere1.velocity.multiplyScalar(-1);
     } else if (sphere1.object.position.y < ynedge) {
-        sphere1.object.position.y = yedge;
-        // sphere.velocity.y *= -1;
+        sphere1.object.position.y = ynedge + 1;
+        sphere1.velocity.multiplyScalar(-1);
     }
 
     if (sphere2.object.position.y > yedge) {
         console.log('sphere greater than y pos edge');
-        sphere2.object.position.y = ynedge;
-        // sphere.velocity.y *= -1;
+        sphere2.object.position.y = yedge - 1;
+        sphere2.velocity.multiplyScalar(-1);
     } else if (sphere2.object.position.y < ynedge) {
-        sphere2.object.position.y = yedge;
-        // sphere.velocity.y *= -1;
+        sphere2.object.position.y = ynedge + 1;
+        sphere2.velocity.multiplyScalar(-1);
     }
 
     if (sphere1.object.position.z > zedge) {
         console.log('sphere greater than z pos edge');
-        sphere1.object.position.z = znedge;
-        // sphere.velocity.z *= -1;
+        sphere1.object.position.z = zedge - 1;
+        sphere1.velocity.multiplyScalar(-1);
     } else if (sphere1.object.position.z < znedge) {
-        sphere1.object.position.z = zedge;
-        // sphere.velocity.z *= -1;
+        sphere1.object.position.z = znedge + 1;
+        sphere1.velocity.multiplyScalar(-1);
     }
 
     if (sphere2.object.position.z > zedge) {
         console.log('sphere greater than z pos edge');
-        sphere2.object.position.z = znedge;
-        // sphere.velocity.z *= -1;
+        sphere2.object.position.z = zedge - 1;
+        sphere2.velocity.multiplyScalar(-1);
     } else if (sphere2.object.position.z < znedge) {
-        sphere2.object.position.z = zedge;
-        // sphere.velocity.z *= -1;
+        sphere2.object.position.z = znedge + 1;
+        sphere2.velocity.multiplyScalar(-1);
     }
 }
 
