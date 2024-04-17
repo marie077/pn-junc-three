@@ -263,23 +263,24 @@ function update() {
     console.log("time:" + currentTime);
 
     // update inner box size based on electric field
-    innerBoxSize = (50 - (xLevel * 10));
+    // innerBoxSize = (50 - (xLevel * 10));
+    innerBoxSize = 3.63*Math.pow(10,7)*Math.pow(Math.abs(xLevel)/(40*(Math.pow(10, 14)*Math.pow(10, -3))),1/2);
     let minInnerBoxSize = 40;
     let maxInnerBoxSize = 100;
 
     scene.remove(innerCube);
     
-    if (xLevel != 0) {
-        if (xLevel >= 0) {
+    if (xLevel !== 0) {
+        if (xLevel > 0) {
             // When the electric field is positive, make the inner box slightly smaller than the original size
-            innerBoxSize = Math.max(minInnerBoxSize, 50 - (xLevel * 5)); // Adjust the scaling factor as desired
-        } else if (xLevel <= 0) {
-            innerBoxSize = Math.min(maxInnerBoxSize, 50 - (xLevel * 5));
-        
-        } else {
-            // When the electric field is negative, make the inner box larger
-            innerBoxSize = 50 + (Math.abs(xLevel) * 10); // Adjust the scaling factor as desired
+            innerBoxSize = Math.max(minInnerBoxSize, innerBoxSize); // Adjust the scaling factor as desired
         }
+        //  else if (xLevel <= 0) {
+        // //     innerBoxSize = Math.min(maxInnerBoxSize, innerBoxSize);
+        
+        // } else {
+        //     innerBoxSize = 50 + innerBoxSize; // Adjust the scaling factor as desired
+        // }
     
         // inner cubes
         innerCubeGeometry = box(innerBoxSize, cubeSize.y, cubeSize.z);
