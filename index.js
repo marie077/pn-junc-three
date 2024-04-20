@@ -21,6 +21,11 @@ let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
 let xLevel = 0.0;
 
+let hBoundsMin = -(cubeSize.x/2) + 1;
+let hBoundsMax = (cubeSize.x/2) - 1;
+let eBoundsMin = -(cubeSize.x/2) + 1;
+let eBoundsMax = (cubeSize.x/2) - 1;
+
 //electric field attributes
 let arrowNegative;
 let arrowPositive;
@@ -28,7 +33,6 @@ let innerBoxSize = 25;
 let innerCubeGeometry;
 let innerCubeMaterial;
 let innerCube;
-
 
 //scatter variables
 let scatterTimeMean = 2;
@@ -263,24 +267,32 @@ function update() {
     console.log("time:" + currentTime);
 
     // update inner box size based on electric field
-    // innerBoxSize = (50 - (xLevel * 10));
-    innerBoxSize = 3.63*Math.pow(10,7)*Math.pow(Math.abs(xLevel)/(40*(Math.pow(10, 14)*Math.pow(10, -3))),1/2);
+    innerBoxSize = (50 - (xLevel * 10));
     let minInnerBoxSize = 40;
     let maxInnerBoxSize = 100;
+       
+     
+    //dis my electric field...
+    let electricField = new THREE.Vector3(xLevel, 0, 0);
+    let electricFieldCopy = electricField.clone();
+    electricFieldCopy.normalize();
+
+    let acc = electricField.x;
+
+    
 
     scene.remove(innerCube);
     
-    if (xLevel !== 0) {
-        if (xLevel > 0) {
+    if (acc != 0) {
+        if (acc >= 0) {
             // When the electric field is positive, make the inner box slightly smaller than the original size
             innerBoxSize = Math.max(minInnerBoxSize, innerBoxSize); // Adjust the scaling factor as desired
-        }
-        //  else if (xLevel <= 0) {
-        // //     innerBoxSize = Math.min(maxInnerBoxSize, innerBoxSize);
+        } else if (acc <= 0) {
+            innerBoxSize = Math.min(maxInnerBoxSize, innerBoxSize);
         
-        // } else {
-        //     innerBoxSize = 50 + innerBoxSize; // Adjust the scaling factor as desired
-        // }
+        } else {
+            innerBoxSize = 50 + innerBoxSize; // Adjust the scaling factor as desired
+        }
     
         // inner cubes
         innerCubeGeometry = box(innerBoxSize, cubeSize.y, cubeSize.z);
@@ -294,43 +306,35 @@ function update() {
         scene.add(innerCube);
     }
    
-    
-   
-    if (xLevel === 0) {
+    if (acc === 0) {
         scene.remove(arrowNegative);
         scene.remove(arrowPositive);
         arrowNegative = null;
         arrowPositive = null;
-    } else if (xLevel < 0) {
+    } else if (acc < 0) {
         scene.remove(arrowPositive);
         arrowPositive =  null;
-    } else if (xLevel > 0) {
+    } else if (acc > 0) {
         scene.remove(arrowNegative);
         arrowNegative = null;
     }
-    
-    //dis my electric field...
-    let electricField = new THREE.Vector3(xLevel, 0, 0);
-    let electricFieldCopy = electricField.clone();
-    electricFieldCopy.normalize();
     const origin = new THREE.Vector3( 0, 70, 0 );
     const length = 50;
     const hex = 0xffff00;
 
-    if (xLevel < 0) {
+    if (acc < 0) {
         if (!arrowNegative) {
             arrowNegative = new THREE.ArrowHelper( electricFieldCopy, origin, length, hex );
             scene.add(arrowNegative);
         }
         
-    } else if (xLevel > 0) {
+    } else if (acc > 0) {
         if (!arrowPositive) {
             arrowPositive = new THREE.ArrowHelper( electricFieldCopy, origin, length, hex );
             scene.add(arrowPositive);
         }    
     } 
-   
-    let acc = electricField.x;
+
     
     // electron sphere movement/distribution
     for (let i = 0; i < numSpheres; i++) {
@@ -345,18 +349,11 @@ function update() {
        if (currHoleScatterTime >= holeSpheres[i].scatterTime) {
         console.log("scatter");
         scatter(holeSpheres[i], i);
-    }
+        }
        
-       //if electric field is active
        const currElectronVelocity = electronSpheres[i].velocity.clone();
        const currHoleVelocity = holeSpheres[i].velocity.clone();
 
-       if (acc !== 0) {
-           const accVectorElectron = new THREE.Vector3(-acc, 0, 0); 
-           const accVectorHole = new THREE.Vector3(acc, 0, 0); 
-           currHoleVelocity.add(accVectorHole.multiplyScalar(time));
-           currElectronVelocity.add(accVectorElectron.multiplyScalar(time));
-       } 
        currElectronVelocity.normalize();
        currHoleVelocity.normalize();
 
@@ -364,25 +361,62 @@ function update() {
        currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
        currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
 
-      
-       // Apply a minimum velocity threshold
        const minVelocity = 0.2;
        const maxVelocity = 0.6;
-       currElectronVelocity.clampLength(minVelocity, maxVelocity);
-       currHoleVelocity.clampLength(minVelocity, maxVelocity);
 
-       electronSpheres[i].object.position.add(currElectronVelocity);
-       electronSpheres[i].velocity = currElectronVelocity;
+       // alright dis field active
+       if (acc !== 0) {
+            // if the electron and holes are within the range and the e field is active
+            let inEFieldRange = (electronSpheres[i].object.position.x > -innerBoxSize/2 + 1 && electronSpheres[i].object.position.x < innerBoxSize/2 - 1) &&
+            (holeSpheres[i].object.position.x > -innerBoxSize/2 + 1 && holeSpheres[i].object.position.x < innerBoxSize/2 - 1);
+            if (inEFieldRange) {
+            // then apply the acceleration and update position and velocity and clamp the positions to within the box
+                const accVectorElectron = new THREE.Vector3(-acc, 0, 0); 
+                const accVectorHole = new THREE.Vector3(acc, 0, 0); 
+                currHoleVelocity.add(accVectorHole.multiplyScalar(time));
+                currElectronVelocity.add(accVectorElectron.multiplyScalar(time));
 
-       holeSpheres[i].object.position.add(currHoleVelocity);
-       holeSpheres[i].velocity = currHoleVelocity;
-
-       let hBoundsMin = -(cubeSize.x/2) + 1;
-       let hBoundsMax = (cubeSize.x/2) - 1;
-       let eBoundsMin = -(cubeSize.x/2) + 1;
-       let eBoundsMax = (cubeSize.x/2) - 1;
+                currElectronVelocity.clampLength(minVelocity, maxVelocity);
+                currHoleVelocity.clampLength(minVelocity, maxVelocity);
     
-       checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
+                electronSpheres[i].object.position.add(currElectronVelocity);
+                electronSpheres[i].velocity = currElectronVelocity;
+    
+                holeSpheres[i].object.position.add(currHoleVelocity);
+                holeSpheres[i].velocity = currHoleVelocity;   
+                
+
+                // this should clamp the electric field to the inner box size...
+                // electronSpheres[i].object.position.clamp(new THREE.Vector3(-innerBoxSize/2 + 1, -cubeSize.y / 2 + 1, -cubeSize.z / 2 + 1), new THREE.Vector3(innerBoxSize/2 - 1, cubeSize.y/2 - 1, cubeSize.z/2 -1));
+                // holeSpheres[i].object.position.clamp(new THREE.Vector3(-innerBoxSize/2 + 1, -cubeSize.y / 2 + 1, -cubeSize.z / 2 + 1), new THREE.Vector3(innerBoxSize/2 - 1, cubeSize.y/2 - 1, cubeSize.z/2 -1));
+                checkBounds(holeSpheres[i], electronSpheres[i], -innerBoxSize/2 + 1, innerBoxSize/2 - 1, -innerBoxSize/2 + 1, innerBoxSize/2 - 1);
+            }
+
+            if (!inEFieldRange) { //if the e field is active but they're not in the inner box then bound based on the innerbox
+                currElectronVelocity.clampLength(minVelocity, maxVelocity);
+                currHoleVelocity.clampLength(minVelocity, maxVelocity);
+                electronSpheres[i].object.position.add(currElectronVelocity);
+                electronSpheres[i].velocity = currElectronVelocity;
+    
+                holeSpheres[i].object.position.add(currHoleVelocity);
+                holeSpheres[i].velocity = currHoleVelocity;   
+                checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, -innerBoxSize/2 + 10, innerBoxSize/2 - 10, eBoundsMax);
+
+            }
+
+          
+       } else { //e field is not active act normal
+         // Apply a minimum velocity threshold
+            currElectronVelocity.clampLength(minVelocity, maxVelocity);
+            currHoleVelocity.clampLength(minVelocity, maxVelocity);
+
+            electronSpheres[i].object.position.add(currElectronVelocity);
+            electronSpheres[i].velocity = currElectronVelocity;
+
+            holeSpheres[i].object.position.add(currHoleVelocity);
+            holeSpheres[i].velocity = currHoleVelocity;
+            checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
+       }
     }
 	renderer.render( scene, camera );
 }
@@ -419,13 +453,13 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
         sphere1.object.position.x = minX1 + 1;
         // sphere1.velocity.multiplyScalar(-1);
     } else if(sphere1.object.position.x <= minX1){
-        sphere1.object.position.x = THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, -2);
+        sphere1.object.position.x = THREE.MathUtils.randFloat(minX1 + 1, minX1 + 20);
         // sphere1.velocity.multiplyScalar(-1);
     }
 
     if (sphere2.object.position.x >= maxX2) {
         console.log('sphere greater than x pos edge');
-        sphere2.object.position.x = THREE.MathUtils.randFloat(2, cubeSize.x/2 - 1);
+        sphere2.object.position.x = THREE.MathUtils.randFloat(maxX2 - 20, maxX2 - 1);
         // sphere2.velocity.multiplyScalar(-1);
     } else if(sphere2.object.position.x <= minX2){
         sphere2.object.position.x = maxX2 - 1;
