@@ -451,13 +451,13 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
         sphere1.object.position.x = minX1 + 1;
         // sphere1.velocity.multiplyScalar(-1);
     } else if(sphere1.object.position.x <= minX1){
-        sphere1.object.position.x = THREE.MathUtils.randFloat(minX1 + 1, minX1);
+        sphere1.object.position.x = THREE.MathUtils.randFloat(minX1 + 1, minX1 + 15);
         // sphere1.velocity.multiplyScalar(-1);
     }
 
     if (sphere2.object.position.x >= maxX2) {
         console.log('sphere greater than x pos edge');
-        sphere2.object.position.x = THREE.MathUtils.randFloat(maxX2, maxX2 - 1);
+        sphere2.object.position.x = THREE.MathUtils.randFloat(maxX2 - 15 , maxX2 - 1);
         // sphere2.velocity.multiplyScalar(-1);
     } else if(sphere2.object.position.x <= minX2){
         sphere2.object.position.x = maxX2 - 1;
