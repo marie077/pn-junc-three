@@ -15,7 +15,7 @@ let shouldAnimate = false;
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
-let numSpheres = 100;
+let numSpheres = 200;
 let cube1;
 let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
@@ -432,9 +432,7 @@ function scatter(sphere, index) {
 }
 
 function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
-
-    //-30 - (cubeSize/2) + 1, -30 + (cubeSize/2) - 20
-    // cube boundaries
+    // cube boundaries y and z
     let yedge = (cubeSize.y/2);
     let ynedge = -(yedge);
     let zedge = (cubeSize.z/2);
@@ -453,13 +451,13 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
         sphere1.object.position.x = minX1 + 1;
         // sphere1.velocity.multiplyScalar(-1);
     } else if(sphere1.object.position.x <= minX1){
-        sphere1.object.position.x = THREE.MathUtils.randFloat(minX1 + 1, minX1 + 20);
+        sphere1.object.position.x = THREE.MathUtils.randFloat(minX1 + 1, minX1);
         // sphere1.velocity.multiplyScalar(-1);
     }
 
     if (sphere2.object.position.x >= maxX2) {
         console.log('sphere greater than x pos edge');
-        sphere2.object.position.x = THREE.MathUtils.randFloat(maxX2 - 20, maxX2 - 1);
+        sphere2.object.position.x = THREE.MathUtils.randFloat(maxX2, maxX2 - 1);
         // sphere2.velocity.multiplyScalar(-1);
     } else if(sphere2.object.position.x <= minX2){
         sphere2.object.position.x = maxX2 - 1;
