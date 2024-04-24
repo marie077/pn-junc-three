@@ -88,7 +88,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -1, 0.4).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -1, 0.4).name('Voltage').step(0.1).onChange(() => {
         xLevel = electricFieldControl.x;
     });
 
@@ -278,10 +278,7 @@ function update() {
 
     // update inner box size based on formula using voltage
     innerBoxSize = 20*0.58*(Math.sqrt(9.2 - xLevel/0.05));
-    // let minInnerBoxSize = 40;
-    // let maxInnerBoxSize = 100;
-       
-     
+        
     //dis my electric field in vector3...
     let electricField = new THREE.Vector3(xLevel, 0, 0);
     let electricFieldCopy = electricField.clone();
