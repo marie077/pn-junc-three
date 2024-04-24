@@ -33,6 +33,9 @@ let innerBoxSize = 25;
 let innerCubeGeometry;
 let innerCubeMaterial;
 let innerCube;
+const options = [-1, 0, 0.3, 0.4, 1];
+let selectedOption;
+let voltage = 0.0;
 
 //scatter variables
 let scatterTimeMean = 2;
@@ -85,9 +88,16 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(electricFieldControl, 'x', -10.0, 10.0).name('Electric Field V/cm   ').step(0.01).onChange(() => {
+    gui.add(electricFieldControl, 'x', -1, 0.4).name('Electric Field V/cm   ').step(0.01).onChange(() => {
         xLevel = electricFieldControl.x;
     });
+
+    // selectedOption = options[1];
+
+    // gui.add(electricFieldControl, 'selectedOption', options).name('Voltage').onChange(function(value) {
+    //     selectedOption = value;
+    //     voltage = selectedOption;
+    // });
 
     // Add a button to reset GUI controls
     gui.add(resetButton, 'Reset Cube');
@@ -266,13 +276,13 @@ function update() {
     let time = clock.getDelta()/15;
     console.log("time:" + currentTime);
 
-    // update inner box size based on electric field
-    innerBoxSize = (50 - (xLevel * 10));
-    let minInnerBoxSize = 40;
-    let maxInnerBoxSize = 100;
+    // update inner box size based on formula using voltage
+    innerBoxSize = 20*0.58*(Math.sqrt(9.2 - xLevel/0.05));
+    // let minInnerBoxSize = 40;
+    // let maxInnerBoxSize = 100;
        
      
-    //dis my electric field...
+    //dis my electric field in vector3...
     let electricField = new THREE.Vector3(xLevel, 0, 0);
     let electricFieldCopy = electricField.clone();
     electricFieldCopy.normalize();
@@ -284,15 +294,15 @@ function update() {
     scene.remove(innerCube);
     
     if (acc != 0) {
-        if (acc >= 0) {
-            // When the electric field is positive, make the inner box slightly smaller than the original size
-            innerBoxSize = Math.max(minInnerBoxSize, innerBoxSize); // Adjust the scaling factor as desired
-        } else if (acc <= 0) {
-            innerBoxSize = Math.min(maxInnerBoxSize, innerBoxSize);
+        // if (acc >= 0) {
+        //     // When the electric field is positive, make the inner box slightly smaller than the original size
+        //     innerBoxSize = Math.max(minInnerBoxSize, innerBoxSize); // Adjust the scaling factor as desired
+        // } else if (acc <= 0) {
+        //     innerBoxSize = Math.min(maxInnerBoxSize, innerBoxSize);
         
-        } else {
-            innerBoxSize = 50 + innerBoxSize; // Adjust the scaling factor as desired
-        }
+        // } else {
+        //     innerBoxSize = 50 + innerBoxSize; // Adjust the scaling factor as desired
+        // }
     
         // inner cubes
         innerCubeGeometry = box(innerBoxSize, cubeSize.y, cubeSize.z);
