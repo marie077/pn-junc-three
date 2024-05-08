@@ -159,14 +159,14 @@ function init() {
         randomVelocity = getBoltzVelocity().multiplyScalar(2);
         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xE3735E, true);
         let holeSphere = new Sphere(holes.position, holes.object.geometry.parameters.radius);
-        createIon(-(cubeSize.x/2) + 1, -2, 0x6495ED, 'acceptor');
+        createIon(-(cubeSize.x/2) + 1, -2, 0xffffff, 'acceptor');
         holeSpheres.push({ object: holes.object, material: holes.material, sphereBound: holeSphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false})
     }
 
     //create initial electrons and donors
     for (let i = 0; i < numSpheres; i++) {
         randomVelocity = getBoltzVelocity().multiplyScalar(2);
-        createIon(2, (cubeSize.x/2) - 1, 0xC70039, 'donor');
+        createIon(2, (cubeSize.x/2) - 1, 0xffffff, 'donor');
         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x71bbd4, false);
         let electronSphere = new Sphere(electron.position, electron.object.geometry.parameters.radius)
         electronSpheres.push({ object: electron.object, material: electron.material, sphereBound: electronSphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
@@ -262,6 +262,7 @@ function update() {
                     if (sparkModel) {
                         console.log('model loaded and collision');
 
+
                         sparkModel.position.copy(collisionPoint);
                         sparkModel.scale.setScalar(size);
 
@@ -274,8 +275,8 @@ function update() {
                         electronSpheres[i].object.geometry.dispose();
                         holeSpheres[j].object.material.dispose();
 
-                        electronSpheres[i].object = undefined;
-                        holeSpheres[j].object = undefined;
+                        // electronSpheres[i].object = undefined;
+                        // holeSpheres[j].object = undefined;
 
                         electronSpheres.splice(i, 1);
                         holeSpheres.splice(j, 1);
@@ -525,7 +526,7 @@ function createIon(minx, maxx, color, ionType) {
         let geometry2 = new THREE.CapsuleGeometry(radius, capsuleLength);
         geometry2.rotateZ(Math.PI/2);  
         let mergedGeometry = new BufferGeometryUtils.mergeGeometries([geometry, geometry2]);
-        let material = new THREE.MeshBasicMaterial({color: color, transparent: true,  opacity: 0.4});
+        let material = new THREE.MeshBasicMaterial({color: color, transparent: true,  opacity: 0.2});
         let donor = new THREE.Mesh(mergedGeometry, material);
         donor.position.set(
             THREE.MathUtils.randFloat(minx, maxx),
