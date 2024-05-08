@@ -150,6 +150,8 @@ function init() {
     plane.rotateY(Math.PI/2);
 
 
+    //text
+    
     scene.add(cube1, plane);
 
     let randomVelocity;
@@ -157,19 +159,17 @@ function init() {
     for (let i = 0; i < numSpheres; i++) {
         // change this to boltzmann distributed velocity
         randomVelocity = getBoltzVelocity().multiplyScalar(2);
-        let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xE3735E, true);
-        let holeSphere = new Sphere(holes.position, holes.object.geometry.parameters.radius);
+        let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
         createIon(-(cubeSize.x/2) + 1, -2, 0xffffff, 'acceptor');
-        holeSpheres.push({ object: holes.object, material: holes.material, sphereBound: holeSphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false})
+        holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
     }
 
     //create initial electrons and donors
     for (let i = 0; i < numSpheres; i++) {
         randomVelocity = getBoltzVelocity().multiplyScalar(2);
         createIon(2, (cubeSize.x/2) - 1, 0xffffff, 'donor');
-        let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x71bbd4, false);
-        let electronSphere = new Sphere(electron.position, electron.object.geometry.parameters.radius)
-        electronSpheres.push({ object: electron.object, material: electron.material, sphereBound: electronSphere, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
+        electronSpheres.push({ object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
 
     //waits for two seconds before electrons and holes diffuse
@@ -249,11 +249,14 @@ function update() {
         const e_sphere = electronSpheres[i];
         for (let j = 0; j < numSpheres; j++) {
             const h_sphere = holeSpheres[j];
+            
             if (checkCollision(e_sphere, h_sphere)) {
                 // slow the colliding spheres down
                 // turn it white lol
                 // stop for like a second or so
                 // fade out and remove from scene
+                e_sphere.speed = 0.1;
+                h_sphere.speed = 0.1;
                 let collisionPoint = e_sphere.object.position.clone().add(h_sphere.object.position.clone()).sub(e_sphere.object.position);
                 let size = 2;
                 loader.load('./assets/gltf/light_effect.glb', async function (gltf) {
@@ -278,9 +281,20 @@ function update() {
                         // electronSpheres[i].object = undefined;
                         // holeSpheres[j].object = undefined;
 
+                        // remove the e and h from array
                         electronSpheres.splice(i, 1);
                         holeSpheres.splice(j, 1);
-                        numSpheres--;
+
+                        // create new hole and electrons for a continuous amount
+                        let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
+                        let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
+                
+                        let randomVelocity_h = getBoltzVelocity().multiplyScalar(2);
+                        let randomVelocity_e = getBoltzVelocity().multiplyScalar(2);
+
+                
+                        holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+                        electronSpheres.push({ object: electron.object, material: electron.material, velocity: randomVelocity_e, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
 
                         scene.add(sparkModel);
 
@@ -377,11 +391,9 @@ function update() {
        currHoleVelocity.clampLength(minVelocity, maxVelocity);
 
        electronSpheres[i].object.position.add(currElectronVelocity);
-       electronSpheres[i].sphereBound.center.copy(electronSpheres[i].object.position);
        electronSpheres[i].velocity = currElectronVelocity;
 
        holeSpheres[i].object.position.add(currHoleVelocity);
-       holeSpheres[i].sphereBound.center.copy(holeSpheres[i].object.position);
        holeSpheres[i].velocity = currHoleVelocity;   
  
        checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
@@ -391,14 +403,11 @@ function update() {
 	renderer.render( scene, camera );
 }
 
-function animateCollision(electron, hole, ) {
-
-}
 function checkCollision(electron, hole) {
     // collision check...
     let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
     //    let coll_dist = electronSpheres[i].object.geometry.parameters.radius + holeSpheres[i].object.geometry.parameters.radius;
-    let coll_dist = 3;
+    let coll_dist = 1;
     if (distance <= coll_dist) {
     return true;
     } else {

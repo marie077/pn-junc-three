@@ -1,9 +1,19 @@
-/* #info {
+#info {
 	position: absolute;
-	top: 10px;
+	font-size:xx-large;
+	bottom: 200px;
 	width: 100%;
-	text-align: center;
 	z-index: 100;
 	display:block;
-    color:green;
-} */
+    color:white;
+}
+
+#ptype {
+	position: inherit;
+	left: 825px;
+}
+
+#ntype {
+	position: inherit;
+	right: 825px;
+}
