@@ -266,19 +266,19 @@ function update() {
                         sparkModel.scale.setScalar(size);
 
                         scene.remove(electronSpheres[i].object);
-                        scene.remove(holeSpheres[i].object);
+                        scene.remove(holeSpheres[j].object);
 
                         electronSpheres[i].object.geometry.dispose();
-                        holeSpheres[i].object.geometry.dispose();
+                        holeSpheres[j].object.geometry.dispose();
 
                         electronSpheres[i].object.geometry.dispose();
-                        holeSpheres[i].object.material.dispose();
+                        holeSpheres[j].object.material.dispose();
 
                         electronSpheres[i].object = undefined;
-                        holeSpheres[i].object = undefined;
+                        holeSpheres[j].object = undefined;
 
                         electronSpheres.splice(i, 1);
-                        holeSpheres.splice(i, 1);
+                        holeSpheres.splice(j, 1);
                         numSpheres--;
 
                         scene.add(sparkModel);
