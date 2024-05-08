@@ -1,9 +1,10 @@
-import * as THREE from 'https://unpkg.com/three/build/three.module.js'; 
+import * as THREE from 'https://unpkg.com/three@0.163.0/build/three.module.js'; 
 import { MathUtils } from 'https://unpkg.com/three/src/math/MathUtils.js';
 import { ImprovedNoise } from 'https://unpkg.com/three/examples/jsm/math/ImprovedNoise.js';
 import * as BufferGeometryUtils from 'https://unpkg.com/three@0.163.0/examples/jsm/utils/BufferGeometryUtils.js';
 import { Sphere } from 'https://unpkg.com/three@0.163.0/src/math/Sphere.js';
-import { Vector3 } from 'https://unpkg.com/three@0.143.0/src/math/Vector3.js';
+import { Vector3 } from 'https://unpkg.com/three@0.163.0/src/math/Vector3.js';
+import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/GLTFLoader.js'
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
@@ -19,7 +20,7 @@ let shouldAnimate = false;
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
-let numSpheres = 150;
+let numSpheres = 200;
 let cube1;
 let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
@@ -50,28 +51,10 @@ let scatterTimeMean = 2;
 const perlin = new ImprovedNoise();
 
 //recombination variables
-let e_coll_check;
-const sparkMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        time: { value: 0.0 } // Uniform for time animation
-    },
-    vertexShader: `
-        uniform float time;
+const loader = new GLTFLoader();
 
-        void main() {
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_Position = projectionMatrix * mvPosition;
-        }
-    `,
-    fragmentShader: `
-        uniform float time;
-
-        void main() {
-            float intensity = 1.0 - abs(sin(time * 10.0));
-            gl_FragColor = vec4(intensity, intensity, intensity, 1.0);
-        }
-    `
-});
+  //GLTF Load
+// let sparkModel;
 
 //on mouse move
 // document.addEventListener( 'mousemove', onDocumentMouseMove );
@@ -92,9 +75,11 @@ function init() {
     camera.position.z = 116;
     //renderer
     renderer = new THREE.WebGLRenderer();
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild( renderer.domElement );
 
+   
     // GUI
     gui = new dat.GUI();
     cameraControls = {
@@ -171,7 +156,7 @@ function init() {
     //create initial holes and acceptors
     for (let i = 0; i < numSpheres; i++) {
         // change this to boltzmann distributed velocity
-        randomVelocity = getBoltzVelocity();
+        randomVelocity = getBoltzVelocity().multiplyScalar(2);
         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xE3735E, true);
         let holeSphere = new Sphere(holes.position, holes.object.geometry.parameters.radius);
         createIon(-(cubeSize.x/2) + 1, -2, 0x6495ED, 'acceptor');
@@ -180,7 +165,7 @@ function init() {
 
     //create initial electrons and donors
     for (let i = 0; i < numSpheres; i++) {
-        randomVelocity = getBoltzVelocity();
+        randomVelocity = getBoltzVelocity().multiplyScalar(2);
         createIon(2, (cubeSize.x/2) - 1, 0xC70039, 'donor');
         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x71bbd4, false);
         let electronSphere = new Sphere(electron.position, electron.object.geometry.parameters.radius)
@@ -191,6 +176,12 @@ function init() {
     setTimeout(() => {
         shouldAnimate = true;
     }, 4000);
+
+    const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
+    scene.add( light );
+
+    // const rectLightHelper = new RectAreaLightHelper( rectLight );
+    // rectLight.add( rectLightHelper );
 }
 
 function update() {
@@ -263,31 +254,46 @@ function update() {
                 // turn it white lol
                 // stop for like a second or so
                 // fade out and remove from scene
-                
-                // let distance = new Vector3().subVectors(e_sphere.object.position, h_sphere.object.position);
-                // let direction = distance.clone().normalize();
-                // e_sphere.material.color.set(0x00FF00);
-                // h_sphere.material.color.set(0x00FF00);
-                let collisionPoint = e_sphere.object.position.clone().add(h_sphere.object.position.clone().sub(e_sphere.object.position));
-                // e_sphere.speed = 0.1;
-                // h_sphere.speed = 0.1;
+                let collisionPoint = e_sphere.object.position.clone().add(h_sphere.object.position.clone()).sub(e_sphere.object.position);
+                let size = 2;
+                loader.load('./assets/gltf/light_effect.glb', async function (gltf) {
+                    const sparkModel = gltf.scene;
+                    await renderer.compileAsync(sparkModel, camera, scene);
+                    if (sparkModel) {
+                        console.log('model loaded and collision');
 
-                const mergedGeometry = BufferGeometryUtils.mergeGeometries([e_sphere.object.geometry, h_sphere.object.geometry]);
-        
-                // Create a new material for the combined entity
-                const mergedMaterial = new THREE.LineDashedMaterial({ color: 0x00FF00 }); // Example color, adjust as needed
-                
-                // Create a new mesh for the combined entity
-                const mergedMesh = new THREE.Mesh(mergedGeometry, mergedMaterial);
-                mergedMesh.position.copy(collisionPoint);
-                scene.remove(e_sphere.object);
-                scene.remove(h_sphere.object);
-                scene.add(mergedMesh);
+                        sparkModel.position.copy(collisionPoint);
+                        sparkModel.scale.setScalar(size);
+
+                        scene.remove(electronSpheres[i].object);
+                        scene.remove(holeSpheres[i].object);
+
+                        electronSpheres[i].object.geometry.dispose();
+                        holeSpheres[i].object.geometry.dispose();
+
+                        electronSpheres[i].object.geometry.dispose();
+                        holeSpheres[i].object.material.dispose();
+
+                        electronSpheres[i].object = undefined;
+                        holeSpheres[i].object = undefined;
+
+                        electronSpheres.splice(i, 1);
+                        holeSpheres.splice(i, 1);
+                        numSpheres--;
+
+                        scene.add(sparkModel);
+
+                        setTimeout(()=> {
+                            scene.remove(sparkModel);
+                         }, 1000);
+                    } else {
+                        console.error('failed to load model');
+                    }
+
+                });
             
 
-                setTimeout(()=> {
-                   scene.remove(mergedMesh);
-                }, 1500);
+              
             }
         }
     }
@@ -324,7 +330,6 @@ function update() {
         if ((-innerBoxSize/2 < electron_x && electron_x < 0)) {
             acc_electron = new THREE.Vector3(-1.53*(innerBoxSize/2 + electron_x), 0 , 0);
             // doing this because electrons will move opposite against the e-field
-            acc_electron.multiplyScalar(-1);
         }
 
         // is position is within 0 < X < Xn
@@ -335,7 +340,6 @@ function update() {
         if (0 < electron_x && electron_x < innerBoxSize/2) {
             acc_electron = new THREE.Vector3(-1.53*(innerBoxSize/2 - electron_x), 0, 0);
             // doing this because electrons will move opposite against the e-field
-            acc_electron.multiplyScalar(-1);
         }
 
         // everywhere else -- -cubeSize.x/2 + 1 < X < -Xn || Xn < X < cubeSize.x/2 - 1
@@ -352,7 +356,7 @@ function update() {
        const currHoleVelocity = holeSpheres[i].velocity.clone();
 
        const minVelocity = 0.1;
-       const maxVelocity = 0.6;
+       const maxVelocity = 0.7;
 
        currElectronVelocity.normalize();
        currHoleVelocity.normalize();
@@ -361,12 +365,12 @@ function update() {
        currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
        currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
 
-       currElectronVelocity.add(acc_electron.multiplyScalar(time));
+       currElectronVelocity.add(acc_electron.multiplyScalar(time).multiplyScalar(-1));
        currHoleVelocity.add(acc_hole.multiplyScalar(time));
 
 
-       currElectronVelocity.add(getBoltzVelocity().multiplyScalar(time));
-       currHoleVelocity.add(getBoltzVelocity().multiplyScalar(time));
+       currElectronVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
+       currHoleVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
 
        currElectronVelocity.clampLength(minVelocity, maxVelocity);
        currHoleVelocity.clampLength(minVelocity, maxVelocity);
