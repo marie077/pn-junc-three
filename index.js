@@ -10,8 +10,7 @@ import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/G
 let container, camera, scene, renderer;
 let voltageLevel;
 let cameraControls;
-let energyLevel;
-let temperatureLevel;
+let boltzScale;
 let gui;
 let minScalar = 0.22;
 let maxScalar = 0.88;
@@ -45,6 +44,7 @@ let voltage = 0.0;
 let energy = 0.0;
 const temperature = 300;
 const boltzmann_const = 1.380649e-23
+let scalar = 1.0;
 
 //scatter variables
 let scatterTimeMean = 2;
@@ -53,16 +53,29 @@ const perlin = new ImprovedNoise();
 //recombination variables
 const loader = new GLTFLoader();
 
-  //GLTF Load
-// let sparkModel;
+// populate boltz distribution table
+let boltz = []; 
 
-//on mouse move
-// document.addEventListener( 'mousemove', onDocumentMouseMove );
+//populated boltz array
 init();
 update();
 
+ 
 function init() {
     //camera, background textures, background, scene, initial geometry, materials, renderer
+    const norm_vel = [{nv: 0.1, quantity: 3}, {nv: 0.2, quantity: 10}, {nv: 0.3, quantity: 21}, {nv: 0.4, quantity: 35}, {nv: 0.5, quantity: 49}, 
+        {nv: 0.6, quantity: 63}, {nv: 0.7, quantity: 74}, {nv: 0.8, quantity: 82}, {nv: 0.9, quantity: 86}, {nv: 1.0, quantity: 86},
+        {nv: 1.1, quantity: 83}, {nv: 1.2, quantity: 77}, {nv: 1.3, quantity: 69}, {nv: 1.4, quantity: 59}, {nv: 1.5, quantity: 50}, {nv: 1.6, quantity: 40},
+        {nv: 1.7, quantity: 32}, {nv: 1.8, quantity: 24}, {nv: 1.9, quantity: 18}, {nv: 2.0, quantity: 13}, {nv: 2.1, quantity: 9}, {nv: 2.2, quantity: 6}, {nv: 2.3, quantity: 4},
+        {nv: 2.4, quantity: 3}, {nv: 2.5, quantity: 2}, {nv: 2.6, quantity: 1}, {nv: 2.7, quantity: 1}];
+    for (let i = 0; i < norm_vel.length; i++) {
+        let count = 0;
+        while (count < norm_vel[i].quantity) {
+            boltz.push(norm_vel[i].nv);
+            count++;
+        }
+    }
+    
     container = document.createElement( 'div' );
     document.body.appendChild( container );
     //scene
@@ -88,37 +101,35 @@ function init() {
         rotateY: MathUtils.degToRad(0),
     };
 
+    boltzScale = {
+        scale: 1.0,
+    }
     voltageLevel = {
         x: 0.0,
     };
 
-    energyLevel = {
-        state: 0.0,
-    }
-
-    temperatureLevel = {
-        temp: 300,
-    }
     const resetButton = { 'Reset Cube': resetGUI };
 
-    gui.add(cameraControls, 'translateX', -100, 100).onChange(() => {
+    gui.add(cameraControls, 'translateX', -100, 100).listen().onChange(() => {
         camera.position.x = cameraControls.translateX;
     });
-    gui.add(cameraControls, 'translateZ', -50, 150).onChange(() => {
+    gui.add(cameraControls, 'translateZ', -50, 150).listen().onChange(() => {
         camera.position.z = cameraControls.translateZ;
     });
 
-    gui.add(cameraControls, 'rotateY', -50, 50).onChange(() => {
+    gui.add(cameraControls, 'rotateY', -50, 50).listen().onChange(() => {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
+    gui.add(voltageLevel, 'x', -1, 0.4).name('Voltage (V)').step(0.1).listen().onChange(() => {
         voltage = voltageLevel.x;
     });
 
-    gui.add(energyLevel, 'state', -50, 50).name('Energy State').step(0.1).onChange(() => {
-        energy = energyLevel.state;
+    gui.add(boltzScale, 'scale', 0.1, 3).name('Boltz Scalar').step(0.1).listen().onChange(() => {
+        scalar = boltzScale.scale;
     });
+
+
 
     // gui.add(temperatureLevel, 'temp', -100, 500).name('temperature').step(0.1).onChange(() => {
     //     temperature = temperatureLevel.temp;
@@ -151,14 +162,14 @@ function init() {
 
 
     //text
-    
+
     scene.add(cube1, plane);
 
     let randomVelocity;
     //create initial holes and acceptors
     for (let i = 0; i < numSpheres; i++) {
         // change this to boltzmann distributed velocity
-        randomVelocity = getBoltzVelocity().multiplyScalar(2);
+        randomVelocity = getBoltzVelocity().divideScalar(scalar);
         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
         createIon(-(cubeSize.x/2) + 1, -2, 0xffffff, 'acceptor');
         holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
@@ -166,7 +177,7 @@ function init() {
 
     //create initial electrons and donors
     for (let i = 0; i < numSpheres; i++) {
-        randomVelocity = getBoltzVelocity().multiplyScalar(2);
+        randomVelocity = getBoltzVelocity().divideScalar(scalar);
         createIon(2, (cubeSize.x/2) - 1, 0xffffff, 'donor');
         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
         electronSpheres.push({ object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
@@ -243,10 +254,31 @@ function update() {
 
     scene.add(innerCube);
 
+      // Generation
+    /*
+    every two seconds lets generate an electron and hole in the same position but (random position)
+    */
+    // setTimeout(()=> {
+    //     let position = new Vector3(
+    //     THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
+    //     THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
+    //     THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
+    //     let hole = createSphereAt(position, 0xFF3131, true);
+    //     let electron = createSphereAt(position, 0x1F51FF, false);
+    //     let randomVelocity_h = getBoltzVelocity().multiplyScalar(2);
+    //     let randomVelocity_e = getBoltzVelocity().multiplyScalar(2);
+    //     holeSpheres.push({object: hole.object, material: hole.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+    //     electronSpheres.push({object: electron.object, material: electron.material, velocity: randomVelocity_e, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+    //     numSpheres++;    
+    // }, 2000);
+
     // Recombination
 
     for (let i = 0; i < numSpheres; i++) {
         const e_sphere = electronSpheres[i];
+        if (e_sphere.id == 'electron generated') {
+            console.log('the regenerated electron is checking for collision');
+        }
         for (let j = 0; j < numSpheres; j++) {
             const h_sphere = holeSpheres[j];
             
@@ -289,8 +321,8 @@ function update() {
                         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
                         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
                 
-                        let randomVelocity_h = getBoltzVelocity().multiplyScalar(2);
-                        let randomVelocity_e = getBoltzVelocity().multiplyScalar(2);
+                        let randomVelocity_h = getBoltzVelocity().divideScalar(scalar);
+                        let randomVelocity_e = getBoltzVelocity().divideScalar(scalar);
 
                 
                         holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
@@ -319,8 +351,8 @@ function update() {
     
     for (let i = 0; i < numSpheres; i++) {
         // implement scatter movement
-        let currElectronScatterTime = (currentTime - electronSpheres[i].scatterStartTime)/1000;
-        let currHoleScatterTime = (currentTime - holeSpheres[i].scatterStartTime)/1000;
+        let currElectronScatterTime = (time - electronSpheres[i].scatterStartTime)/1000;
+        let currHoleScatterTime = (time - holeSpheres[i].scatterStartTime)/1000;
 
        if (currElectronScatterTime >= electronSpheres[i].scatterTime) {
            scatter(electronSpheres[i], i);
@@ -384,8 +416,8 @@ function update() {
        currHoleVelocity.add(acc_hole.multiplyScalar(time));
 
 
-       currElectronVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
-       currHoleVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
+    //    currElectronVelocity.add(getBoltzVelocity());
+    //    currHoleVelocity.add(getBoltzVelocity());
 
        currElectronVelocity.clampLength(minVelocity, maxVelocity);
        currHoleVelocity.clampLength(minVelocity, maxVelocity);
@@ -400,8 +432,19 @@ function update() {
 
       
     }
+
+   
+
 	renderer.render( scene, camera );
 }
+
+
+// Function to reset GUI controls
+function resetGUI() {
+    console.log('reset attempted');
+    gui.__controllers.forEach(controller => controller.setValue(controller.initialValue));
+}
+
 
 function checkCollision(electron, hole) {
     // collision check...
@@ -416,19 +459,19 @@ function checkCollision(electron, hole) {
 }
 
 function getBoltzVelocity() {
-    let boltzDistribution = Math.exp(-(energy/boltzmann_const*temperature));
-
-    const x = Math.random(0, boltzDistribution);
-    const y = Math.random(0, boltzDistribution);
-    const z = Math.random(0, boltzDistribution);
-
-    return new THREE.Vector3(x, y, z);
+    // let boltzDistribution = Math.exp(-(energy/boltzmann_const*temperature));
+    let max = 1000;
+    const x = boltz[Math.floor(Math.random() * max)];
+    const y = boltz[Math.floor(Math.random() * max)];
+    const z = boltz[Math.floor(Math.random() * max)];
+    return new THREE.Vector3(x, y, z).normalize();
 }
 
 
 function scatter(sphere, index) {
     //reset the velocity to something random
-    sphere.velocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+    sphere.velocity = getBoltzVelocity().divideScalar(scalar);
+    // sphere.velocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
 
     //reset scatter start time and next scatter time
     sphere.scatterStartTime = performance.now();
@@ -501,18 +544,6 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
     }
 }
 
-// Function to reset GUI controls
-function resetGUI() {
-    console.log('reset attempted');
-    Object.assign(cameraControls, electricFieldControl);
-        electricFieldControl.x = 0;
-        camera.position.x = 0;
-        camera.rotation.y = MathUtils.degToRad(0);
-        camera.position.z = 116; 
-        voltage = 0;
-    gui.updateDisplay(); // Update GUI to reflect the changes
-}
-
 
 function createIon(minx, maxx, color, ionType) {
     let capsuleLength = 3;
@@ -544,6 +575,42 @@ function createIon(minx, maxx, color, ionType) {
         );
         scene.add(donor);
     }
+}
+
+
+// Function to create a sphere inside the cube
+function createSphere(i, minPos, maxPos, sphereColor, transparency) {
+    let opacityVal = null;
+    if (transparency) {
+        opacityVal = 0.6;
+    }
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal});
+    const sphere = new THREE.Mesh(geometry, material);
+
+    // Random position within the cube as specified
+    sphere.position.set(
+    THREE.MathUtils.randFloat(minPos, maxPos),
+    THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1),
+    THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1)
+    );
+    scene.add(sphere);
+    return {object: sphere, material: material};
+}
+
+function createSphereAt(position, sphereColor, transparency) {
+    let opacityVal = null;
+    if (transparency) {
+        opacityVal = 0.6;
+    }
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal});
+    const sphere = new THREE.Mesh(geometry, material);
+
+    // Random position within the cube as specified
+    sphere.position.set(position.x, position.y, position.z);
+    scene.add(sphere);
+    return {object: sphere, material: material};
 }
 
 function box( width, height, depth ) {
@@ -597,27 +664,6 @@ function box( width, height, depth ) {
 
     return geometry;
 
-}
-
-
-// Function to create a sphere inside the cube
-function createSphere(i, minPos, maxPos, sphereColor, transparency) {
-    let opacityVal = null;
-    if (transparency) {
-        opacityVal = 0.6;
-    }
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal});
-    const sphere = new THREE.Mesh(geometry, material);
-
-    // Random position within the cube as specified
-    sphere.position.set(
-    THREE.MathUtils.randFloat(minPos, maxPos),
-    THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1),
-    THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1)
-    );
-    scene.add(sphere);
-    return {object: sphere, material: material};
 }
 
 

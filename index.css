@@ -10,10 +10,10 @@
 
 #ptype {
 	position: inherit;
-	left: 825px;
+	right: 825px;
 }
 
 #ntype {
 	position: inherit;
-	right: 825px;
+	left: 825px;
 }
