@@ -10,6 +10,7 @@ import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/G
 let container, camera, scene, renderer;
 let voltageLevel;
 let cameraControls;
+let energyLevel;
 let boltzScale;
 let gui;
 let minScalar = 0.22;
@@ -110,22 +111,22 @@ function init() {
 
     const resetButton = { 'Reset Cube': resetGUI };
 
-    gui.add(cameraControls, 'translateX', -100, 100).listen().onChange(() => {
+    gui.add(cameraControls, 'translateX', -100, 100).onChange(() => {
         camera.position.x = cameraControls.translateX;
     });
-    gui.add(cameraControls, 'translateZ', -50, 150).listen().onChange(() => {
+    gui.add(cameraControls, 'translateZ', -50, 150).onChange(() => {
         camera.position.z = cameraControls.translateZ;
     });
 
-    gui.add(cameraControls, 'rotateY', -50, 50).listen().onChange(() => {
+    gui.add(cameraControls, 'rotateY', -50, 50).onChange(() => {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1, 0.4).name('Voltage (V)').step(0.1).listen().onChange(() => {
+    gui.add(voltageLevel, 'x', -1, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
         voltage = voltageLevel.x;
     });
 
-    gui.add(boltzScale, 'scale', 0.1, 3).name('Boltz Scalar').step(0.1).listen().onChange(() => {
+    gui.add(boltzScale, 'scale', 0.1, 3).name('Boltz Scale').step(0.1).onChange(() => {
         scalar = boltzScale.scale;
     });
 
@@ -169,7 +170,7 @@ function init() {
     //create initial holes and acceptors
     for (let i = 0; i < numSpheres; i++) {
         // change this to boltzmann distributed velocity
-        randomVelocity = getBoltzVelocity().divideScalar(scalar);
+        randomVelocity = getBoltzVelocity();
         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
         createIon(-(cubeSize.x/2) + 1, -2, 0xffffff, 'acceptor');
         holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
@@ -177,7 +178,7 @@ function init() {
 
     //create initial electrons and donors
     for (let i = 0; i < numSpheres; i++) {
-        randomVelocity = getBoltzVelocity().divideScalar(scalar);
+        randomVelocity = getBoltzVelocity();
         createIon(2, (cubeSize.x/2) - 1, 0xffffff, 'donor');
         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
         electronSpheres.push({ object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
@@ -321,8 +322,8 @@ function update() {
                         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
                         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
                 
-                        let randomVelocity_h = getBoltzVelocity().divideScalar(scalar);
-                        let randomVelocity_e = getBoltzVelocity().divideScalar(scalar);
+                        let randomVelocity_h = getBoltzVelocity();
+                        let randomVelocity_e = getBoltzVelocity();
 
                 
                         holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
@@ -351,14 +352,14 @@ function update() {
     
     for (let i = 0; i < numSpheres; i++) {
         // implement scatter movement
-        let currElectronScatterTime = (time - electronSpheres[i].scatterStartTime)/1000;
-        let currHoleScatterTime = (time - holeSpheres[i].scatterStartTime)/1000;
+        let currElectronScatterTime = (currentTime - electronSpheres[i].scatterStartTime)/1000;
+        let currHoleScatterTime = (currentTime - holeSpheres[i].scatterStartTime)/1000;
 
        if (currElectronScatterTime >= electronSpheres[i].scatterTime) {
            scatter(electronSpheres[i], i);
        }
        if (currHoleScatterTime >= holeSpheres[i].scatterTime) {
-        scatter(holeSpheres[i], i);
+            scatter(holeSpheres[i], i);
         }
 
         /* begin velocity calculations for each hole and each electron*/
@@ -402,11 +403,11 @@ function update() {
        const currElectronVelocity = electronSpheres[i].velocity.clone();
        const currHoleVelocity = holeSpheres[i].velocity.clone();
 
-       const minVelocity = 0.1;
+       const minVelocity = 0.2;
        const maxVelocity = 0.7;
 
-       currElectronVelocity.normalize();
-       currHoleVelocity.normalize();
+    //    currElectronVelocity.normalize();
+    //    currHoleVelocity.normalize();
 
        // randomizes the electron speed
        currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
@@ -416,8 +417,8 @@ function update() {
        currHoleVelocity.add(acc_hole.multiplyScalar(time));
 
 
-    //    currElectronVelocity.add(getBoltzVelocity());
-    //    currHoleVelocity.add(getBoltzVelocity());
+    //    currElectronVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
+    //    currHoleVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
 
        currElectronVelocity.clampLength(minVelocity, maxVelocity);
        currHoleVelocity.clampLength(minVelocity, maxVelocity);
@@ -438,14 +439,6 @@ function update() {
 	renderer.render( scene, camera );
 }
 
-
-// Function to reset GUI controls
-function resetGUI() {
-    console.log('reset attempted');
-    gui.__controllers.forEach(controller => controller.setValue(controller.initialValue));
-}
-
-
 function checkCollision(electron, hole) {
     // collision check...
     let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
@@ -459,18 +452,18 @@ function checkCollision(electron, hole) {
 }
 
 function getBoltzVelocity() {
-    // let boltzDistribution = Math.exp(-(energy/boltzmann_const*temperature));
-    let max = 1000;
-    const x = boltz[Math.floor(Math.random() * max)];
-    const y = boltz[Math.floor(Math.random() * max)];
-    const z = boltz[Math.floor(Math.random() * max)];
-    return new THREE.Vector3(x, y, z).normalize();
+    const x = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
+    const y = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
+    const z = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
+    let randomVelocity = new THREE.Vector3(x, y, z).divideScalar(scalar).normalize();
+
+    return randomVelocity;
 }
 
 
 function scatter(sphere, index) {
     //reset the velocity to something random
-    sphere.velocity = getBoltzVelocity().divideScalar(scalar);
+    sphere.velocity = getBoltzVelocity();
     // sphere.velocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
 
     //reset scatter start time and next scatter time
@@ -542,6 +535,12 @@ function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
         sphere2.object.position.z = znedge + 1;
         sphere2.velocity.multiplyScalar(-1);
     }
+}
+
+// Function to reset GUI controls
+function resetGUI() {
+    console.log('reset attempted');
+    gui.__controllers.forEach(controller => controller.setValue(controller.initialValue));
 }
 
 
