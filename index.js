@@ -53,6 +53,8 @@ const perlin = new ImprovedNoise();
 
 //recombination variables
 const loader = new GLTFLoader();
+let ready_recombine = false;
+let hold_still = true;
 
 // populate boltz distribution table
 let boltz = []; 
@@ -82,6 +84,8 @@ function init() {
     //scene
     scene = new THREE.Scene();
 
+    const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
+    scene.add( light );
     //camera
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1500 );
     // camera.position.x = 86;
@@ -171,9 +175,9 @@ function init() {
     for (let i = 0; i < numSpheres; i++) {
         // change this to boltzmann distributed velocity
         randomVelocity = getBoltzVelocity();
-        let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
+        let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, false);
         createIon(-(cubeSize.x/2) + 1, -2, 0xffffff, 'acceptor');
-        holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
+        holeSpheres.push({recombine: true, canMove: true, id:'initial', object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
     }
 
     //create initial electrons and donors
@@ -181,7 +185,7 @@ function init() {
         randomVelocity = getBoltzVelocity();
         createIon(2, (cubeSize.x/2) - 1, 0xffffff, 'donor');
         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
-        electronSpheres.push({ object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        electronSpheres.push({recombine: true, canMove: true, id: 'initial', object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
 
     //waits for two seconds before electrons and holes diffuse
@@ -189,8 +193,8 @@ function init() {
         shouldAnimate = true;
     }, 4000);
 
-    const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
-    scene.add( light );
+    //generate after 10 seconds
+    setTimeout(generation, 5000);
 
     // const rectLightHelper = new RectAreaLightHelper( rectLight );
     // rectLight.add( rectLightHelper );
@@ -255,96 +259,71 @@ function update() {
 
     scene.add(innerCube);
 
-      // Generation
-    /*
-    every two seconds lets generate an electron and hole in the same position but (random position)
-    */
-    // setTimeout(()=> {
-    //     let position = new Vector3(
-    //     THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
-    //     THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
-    //     THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
-    //     let hole = createSphereAt(position, 0xFF3131, true);
-    //     let electron = createSphereAt(position, 0x1F51FF, false);
-    //     let randomVelocity_h = getBoltzVelocity().multiplyScalar(2);
-    //     let randomVelocity_e = getBoltzVelocity().multiplyScalar(2);
-    //     holeSpheres.push({object: hole.object, material: hole.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-    //     electronSpheres.push({object: electron.object, material: electron.material, velocity: randomVelocity_e, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-    //     numSpheres++;    
-    // }, 2000);
-
     // Recombination
+        for (let i = 0; i < numSpheres; i++) {
+            const e_sphere = electronSpheres[i];
+            if (e_sphere.id == 'electron generated') {
+                console.log('the regenerated electron is checking for collision');
+            }
+            for (let j = 0; j < numSpheres; j++) {
+                const h_sphere = holeSpheres[j];
+                if (electronSpheres[i].recombine == true && holeSpheres[j].recombine == true) {
+ 
+                    if (checkCollision(e_sphere, h_sphere)) {
+                        // slow the colliding spheres down
+                        // turn it white lol
+                        // stop for like a second or so
+                        // fade out and remove from scene
+                        e_sphere.speed = 0.1;
+                        h_sphere.speed = 0.1;
+                        let collisionPoint = e_sphere.object.position.clone().add(h_sphere.object.position.clone()).sub(e_sphere.object.position);
+                        let size = 2;
+                        loader.load('./assets/gltf/light_effect.glb', async function (gltf) {
+                            const sparkModel = gltf.scene;
+                            await renderer.compileAsync(sparkModel, camera, scene);
+                            if (sparkModel) {
+                                console.log('model loaded and collision');
+        
+        
+                                sparkModel.position.copy(collisionPoint);
+                                sparkModel.scale.setScalar(size);
+                                console.log(electronSpheres[i].object);
+                                scene.remove(electronSpheres[i].object);
+                                scene.remove(holeSpheres[j].object);
+        
+                                electronSpheres[i].object.geometry.dispose();
+                                holeSpheres[j].object.geometry.dispose();
+        
+                                electronSpheres[i].object.geometry.dispose();
+                                holeSpheres[j].object.material.dispose();
+        
+                                // electronSpheres[i].object = undefined;
+                                // holeSpheres[j].object = undefined;
+        
+                                // remove the e and h from array
+                                electronSpheres.splice(i, 1);
+                                holeSpheres.splice(j, 1);
+                                numSpheres--;
 
-    for (let i = 0; i < numSpheres; i++) {
-        const e_sphere = electronSpheres[i];
-        if (e_sphere.id == 'electron generated') {
-            console.log('the regenerated electron is checking for collision');
-        }
-        for (let j = 0; j < numSpheres; j++) {
-            const h_sphere = holeSpheres[j];
-            
-            if (checkCollision(e_sphere, h_sphere)) {
-                // slow the colliding spheres down
-                // turn it white lol
-                // stop for like a second or so
-                // fade out and remove from scene
-                e_sphere.speed = 0.1;
-                h_sphere.speed = 0.1;
-                let collisionPoint = e_sphere.object.position.clone().add(h_sphere.object.position.clone()).sub(e_sphere.object.position);
-                let size = 2;
-                loader.load('./assets/gltf/light_effect.glb', async function (gltf) {
-                    const sparkModel = gltf.scene;
-                    await renderer.compileAsync(sparkModel, camera, scene);
-                    if (sparkModel) {
-                        console.log('model loaded and collision');
-
-
-                        sparkModel.position.copy(collisionPoint);
-                        sparkModel.scale.setScalar(size);
-
-                        scene.remove(electronSpheres[i].object);
-                        scene.remove(holeSpheres[j].object);
-
-                        electronSpheres[i].object.geometry.dispose();
-                        holeSpheres[j].object.geometry.dispose();
-
-                        electronSpheres[i].object.geometry.dispose();
-                        holeSpheres[j].object.material.dispose();
-
-                        // electronSpheres[i].object = undefined;
-                        // holeSpheres[j].object = undefined;
-
-                        // remove the e and h from array
-                        electronSpheres.splice(i, 1);
-                        holeSpheres.splice(j, 1);
-
-                        // create new hole and electrons for a continuous amount
-                        let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, true);
-                        let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
-                
-                        let randomVelocity_h = getBoltzVelocity();
-                        let randomVelocity_e = getBoltzVelocity();
-
-                
-                        holeSpheres.push({ object: holes.object, material: holes.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
-                        electronSpheres.push({ object: electron.object, material: electron.material, velocity: randomVelocity_e, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
-
-                        scene.add(sparkModel);
-
-                        setTimeout(()=> {
-                            scene.remove(sparkModel);
-                         }, 1000);
-                    } else {
-                        console.error('failed to load model');
+                                scene.add(sparkModel);
+        
+                                setTimeout(()=> {
+                                    scene.remove(sparkModel);
+                                }, 1000);
+                            } else {
+                                console.error('failed to load model');
+                            }
+        
+                        });
+                    
+        
+                    
                     }
-
-                });
-            
-
-              
+                }
             }
         }
-    }
+   
+   
 
     /*
     update the e and h velocities based on position
@@ -423,11 +402,28 @@ function update() {
        currElectronVelocity.clampLength(minVelocity, maxVelocity);
        currHoleVelocity.clampLength(minVelocity, maxVelocity);
 
-       electronSpheres[i].object.position.add(currElectronVelocity);
-       electronSpheres[i].velocity = currElectronVelocity;
+       if (!hold_still && electronSpheres[i].id == 'generated' && holeSpheres[i].id == 'generated') {
+            electronSpheres[i].canMove = true;
+            holeSpheres[i].canMove = true;
+       }
 
-       holeSpheres[i].object.position.add(currHoleVelocity);
-       holeSpheres[i].velocity = currHoleVelocity;   
+       if (electronSpheres[i].id == 'generated' && holeSpheres[i].id == 'generated') {
+            let distancePostGenerated = new THREE.Vector3().subVectors(electronSpheres[i].object.position, holeSpheres[i].object.position).length();
+            if (distancePostGenerated > 3) {
+                electronSpheres[i].recombine = true;
+                holeSpheres[i].recombine = true;
+            }
+       }
+
+       if (electronSpheres[i].canMove == true) {
+        electronSpheres[i].object.position.add(currElectronVelocity);
+        electronSpheres[i].velocity = currElectronVelocity;
+
+        holeSpheres[i].object.position.add(currHoleVelocity);
+        holeSpheres[i].velocity = currHoleVelocity;   
+       }
+
+       
  
        checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
 
@@ -437,6 +433,43 @@ function update() {
    
 
 	renderer.render( scene, camera );
+}
+
+function generation() {
+    let threshold = 1.5;
+    let rand_number = Math.random() * 2;
+    // if (rand_number >= threshold) {
+        let position = new Vector3(
+            THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
+            THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
+            THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
+
+            //orb
+            const orbGeo = new THREE.SphereGeometry(3, 32, 32);
+            const orbMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4});
+            const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+        
+            orbSphere.position.set(position.x, position.y, position.z);
+            scene.add(orbSphere);
+            hold_still = true;
+            setTimeout(()=> {
+                scene.remove(orbSphere);
+                hold_still = false;
+            }, 3000);
+
+            let hole = createSphereAt(position.clone().add(new THREE.Vector3(1, 0, 0)), 0xFF3131, false);
+            let electron = createSphereAt(position, 0x1F51FF, false);
+
+            let randomVelocity_h = getBoltzVelocity();
+            let randomVelocity_e = getBoltzVelocity();
+            holeSpheres.push({recombine: false, canMove: false, id: 'generated', object: hole.object, material: hole.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+            electronSpheres.push({recombine: false, canMove: false, id: 'generated', object: electron.object, material: electron.material, velocity: randomVelocity_e, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+            numSpheres++;
+            ready_recombine = false;  
+            //recursively call every 10 seconds and ready to recombine after 15 seconds
+            
+    // }
+    setTimeout(generation, 5000);
 }
 
 function checkCollision(electron, hole) {
