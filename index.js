@@ -130,7 +130,7 @@ function init() {
         voltage = voltageLevel.x;
     });
 
-    gui.add(boltzScale, 'scale', 0.1, 3).name('Boltz Scale').step(0.1).onChange(() => {
+    gui.add(boltzScale, 'scale', 0.1, 10).name('Boltz Scale').step(0.1).onChange(() => {
         scalar = boltzScale.scale;
     });
 
@@ -392,6 +392,8 @@ function update() {
        currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
        currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
 
+       //multiply scalar to acceleration
+
        currElectronVelocity.add(acc_electron.multiplyScalar(time).multiplyScalar(-1));
        currHoleVelocity.add(acc_hole.multiplyScalar(time));
 
@@ -488,7 +490,7 @@ function getBoltzVelocity() {
     const x = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     const y = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     const z = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
-    let randomVelocity = new THREE.Vector3(x, y, z).divideScalar(scalar).normalize();
+    let randomVelocity = new THREE.Vector3(x, y, z).multiplyScalar(scalar).normalize();
 
     return randomVelocity;
 }
