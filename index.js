@@ -487,9 +487,17 @@ function checkCollision(electron, hole) {
 }
 
 function getBoltzVelocity() {
-    const x = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
-    const y = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
-    const z = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
+    let r = boltz[Math.floor(Math.random() * boltz.length)];
+    let theta = Math.random() * Math.PI;
+    let phi = Math.random() * (2*Math.PI);
+
+    const x = r*Math.sin(theta)*Math.cos(phi);
+    const y = r*Math.sin(theta)*Math.sin(phi);
+    const z = r*Math.cos(theta);
+    
+    // const x = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
+    // const y = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
+    // const z = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     let randomVelocity = new THREE.Vector3(x, y, z).multiplyScalar(scalar).normalize();
 
     return randomVelocity;
