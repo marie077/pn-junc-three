@@ -395,9 +395,6 @@ function update() {
        const minVelocity = 0.2;
        const maxVelocity = 0.7;
 
-    //    currElectronVelocity.normalize();
-    //    currHoleVelocity.normalize();
-
        // randomizes the electron speed
        currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
        currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
@@ -408,10 +405,6 @@ function update() {
 
        currElectronVelocity.add(acc_electron.multiplyScalar(time).multiplyScalar(-1));
        currHoleVelocity.add(acc_hole.multiplyScalar(time));
-
-
-    //    currElectronVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
-    //    currHoleVelocity.add(getBoltzVelocity().multiplyScalar(time).multiplyScalar(2));
 
        currElectronVelocity.clampLength(minVelocity, maxVelocity);
        currHoleVelocity.clampLength(minVelocity, maxVelocity);
@@ -437,21 +430,14 @@ function update() {
         holeSpheres[i].velocity = currHoleVelocity;   
        }
 
-       
- 
        checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
-
-      
     }
-
-   
-
 	renderer.render( scene, camera );
 }
 
 function generation() {
-    let threshold = 1.5;
-    let rand_number = Math.random() * 2;
+    // let threshold = 1.5;
+    // let rand_number = Math.random() * 2;
     // if (rand_number >= threshold) {
         let position = new Vector3(
             THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
@@ -510,7 +496,7 @@ function getBoltzVelocity() {
     // const x = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     // const y = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     // const z = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
-    let randomVelocity = new THREE.Vector3(x, y, z).multiplyScalar(scalar).normalize();
+    let randomVelocity = new THREE.Vector3(x, y, z).multiplyScalar(scalar);
 
     return randomVelocity;
 }
