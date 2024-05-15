@@ -10,6 +10,7 @@ import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/G
 let container, camera, scene, renderer;
 let voltageLevel;
 let cameraControls;
+let accScale;
 let energyLevel;
 let boltzScale;
 let gui;
@@ -40,6 +41,7 @@ let innerCubeGeometry;
 let innerCubeMaterial;
 let innerCube;
 let voltage = 0.0;
+let accScalar = 0.0;
 
 //boltzmann distribution variables
 let energy = 0.0;
@@ -113,6 +115,10 @@ function init() {
         x: 0.0,
     };
 
+    accScale = {
+        scale: 1.0,
+    }
+
     const resetButton = { 'Reset Cube': resetGUI };
 
     gui.add(cameraControls, 'translateX', -100, 100).onChange(() => {
@@ -130,8 +136,12 @@ function init() {
         voltage = voltageLevel.x;
     });
 
-    gui.add(boltzScale, 'scale', 0.1, 10).name('Boltz Scale').step(0.1).onChange(() => {
+    gui.add(boltzScale, 'scale', 0.1, 20).name('Boltz Scale').step(0.1).onChange(() => {
         scalar = boltzScale.scale;
+    });
+
+    gui.add(accScale, 'scale', 0.1, 10).name('Acceleration Scalar').step(0.1).onChange(() => {
+        accScalar = accScale.scale;
     });
 
 
@@ -393,6 +403,8 @@ function update() {
        currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
 
        //multiply scalar to acceleration
+       acc_electron.multiplyScalar(accScalar);
+       acc_hole.multiplyScalar(accScalar);
 
        currElectronVelocity.add(acc_electron.multiplyScalar(time).multiplyScalar(-1));
        currHoleVelocity.add(acc_hole.multiplyScalar(time));
@@ -494,7 +506,7 @@ function getBoltzVelocity() {
     const x = r*Math.sin(theta)*Math.cos(phi);
     const y = r*Math.sin(theta)*Math.sin(phi);
     const z = r*Math.cos(theta);
-    
+
     // const x = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     // const y = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     // const z = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
