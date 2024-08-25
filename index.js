@@ -223,7 +223,7 @@ function update() {
 
     // if voltage if positive then we set a minSize for the innerbox
     if (voltage > 0) {
-        innerBoxSize = Math.max(innerBoxSize, minSize);
+        innerBoxSize = Math.min(innerBoxSize, minSize);
     }
 
     // ARROW IMPLEMENTATION
@@ -455,7 +455,8 @@ function generation() {
             setTimeout(()=> {
                 scene.remove(orbSphere);
                 hold_still = false;
-            }, 400);
+                //move after 3 seconds...
+            }, 3000);
 
             let hole = createSphereAt(position.clone().add(new THREE.Vector3(1, 0, 0)), 0xFF3131, false);
             let electron = createSphereAt(position, 0x1F51FF, false);
@@ -469,7 +470,8 @@ function generation() {
             //recursively call every 10 seconds and ready to recombine after 15 seconds
             
     // }
-    setTimeout(generation, 500);
+    //call generation after every 3 seconds
+    setTimeout(generation, 3000);
 }
 
 function checkCollision(electron, hole) {
