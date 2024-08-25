@@ -455,7 +455,7 @@ function generation() {
             setTimeout(()=> {
                 scene.remove(orbSphere);
                 hold_still = false;
-            }, 400);
+            }, 1000);
 
             let hole = createSphereAt(position.clone().add(new THREE.Vector3(1, 0, 0)), 0xFF3131, false);
             let electron = createSphereAt(position, 0x1F51FF, false);
