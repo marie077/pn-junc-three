@@ -41,13 +41,13 @@ let innerCubeGeometry;
 let innerCubeMaterial;
 let innerCube;
 let voltage = 0.0;
-let accScalar = 0.0;
+let accScalar = 1.0;
 
 //boltzmann distribution variables
 let energy = 0.0;
 const temperature = 300;
 const boltzmann_const = 1.380649e-23
-let scalar = 1.0;
+let scalar = 0.5;
 
 //scatter variables
 let scatterTimeMean = 2;
@@ -71,8 +71,8 @@ function init() {
     const norm_vel = [{nv: 0.1, quantity: 3}, {nv: 0.2, quantity: 10}, {nv: 0.3, quantity: 21}, {nv: 0.4, quantity: 35}, {nv: 0.5, quantity: 49}, 
         {nv: 0.6, quantity: 63}, {nv: 0.7, quantity: 74}, {nv: 0.8, quantity: 82}, {nv: 0.9, quantity: 86}, {nv: 1.0, quantity: 86},
         {nv: 1.1, quantity: 83}, {nv: 1.2, quantity: 77}, {nv: 1.3, quantity: 69}, {nv: 1.4, quantity: 59}, {nv: 1.5, quantity: 50}, {nv: 1.6, quantity: 40},
-        {nv: 1.7, quantity: 32}, {nv: 1.8, quantity: 24}, {nv: 1.9, quantity: 18}, {nv: 2.0, quantity: 13}, {nv: 2.1, quantity: 9}, {nv: 2.2, quantity: 6}, {nv: 2.3, quantity: 4},
-        {nv: 2.4, quantity: 3}, {nv: 2.5, quantity: 2}, {nv: 2.6, quantity: 1}, {nv: 2.7, quantity: 1}];
+        {nv: 1.7, quantity: 32}, {nv: 1.8, quantity: 24}, {nv: 1.9, quantity: 18}, {nv: 3.0, quantity: 13}, {nv: 2.1, quantity: 9}, {nv: 2.2, quantity: 6}, {nv: 2.3, quantity: 4},
+        {nv: 3.5, quantity: 3}, {nv: 4, quantity: 2}, {nv: 5, quantity: 1}, {nv: 6, quantity: 1}];
     for (let i = 0; i < norm_vel.length; i++) {
         let count = 0;
         while (count < norm_vel[i].quantity) {
@@ -109,7 +109,7 @@ function init() {
     };
 
     boltzScale = {
-        scale: 1.0,
+        scale: 0.5,
     }
     voltageLevel = {
         x: 0.0,
@@ -132,11 +132,11 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
+    gui.add(voltageLevel, 'x', -1, 0.6).name('Voltage (V)').step(0.1).onChange(() => {
         voltage = voltageLevel.x;
     });
 
-    gui.add(boltzScale, 'scale', 0.1, 20).name('Boltz Scale').step(0.1).onChange(() => {
+    gui.add(boltzScale, 'scale', 0.5, 1.0).name('Boltz Scale').step(0.1).onChange(() => {
         scalar = boltzScale.scale;
     });
 
@@ -204,7 +204,7 @@ function init() {
     }, 4000);
 
     //generate after 10 seconds
-    setTimeout(generation, 5000);
+    setTimeout(generation, 500);
 
     // const rectLightHelper = new RectAreaLightHelper( rectLight );
     // rectLight.add( rectLightHelper );
@@ -216,7 +216,7 @@ function update() {
     let time = clock.getDelta()/15;
 
     scene.remove(innerCube);
-    let minSize = 40;
+    let minSize = 10;
 
     // update inner box size based on formula using voltage
     innerBoxSize = 24.2*(0.58*(Math.sqrt(9.2 - voltage/0.05)));
@@ -393,11 +393,11 @@ function update() {
        const currHoleVelocity = holeSpheres[i].velocity.clone();
 
        const minVelocity = 0.2;
-       const maxVelocity = 0.7;
+       const maxVelocity = 30;
 
-       // randomizes the electron speed
-       currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
-       currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
+       // randomizes the electron speed (wrong, deleted by Azad)
+       //currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
+       //currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
 
        //multiply scalar to acceleration
        acc_electron.multiplyScalar(accScalar);
@@ -455,7 +455,7 @@ function generation() {
             setTimeout(()=> {
                 scene.remove(orbSphere);
                 hold_still = false;
-            }, 3000);
+            }, 400);
 
             let hole = createSphereAt(position.clone().add(new THREE.Vector3(1, 0, 0)), 0xFF3131, false);
             let electron = createSphereAt(position, 0x1F51FF, false);
@@ -469,14 +469,14 @@ function generation() {
             //recursively call every 10 seconds and ready to recombine after 15 seconds
             
     // }
-    setTimeout(generation, 5000);
+    setTimeout(generation, 500);
 }
 
 function checkCollision(electron, hole) {
     // collision check...
     let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
     //    let coll_dist = electronSpheres[i].object.geometry.parameters.radius + holeSpheres[i].object.geometry.parameters.radius;
-    let coll_dist = 1;
+    let coll_dist = 3;
     if (distance <= coll_dist) {
     return true;
     } else {
