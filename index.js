@@ -56,6 +56,11 @@ const loader = new GLTFLoader();
 let ready_recombine = false;
 let hold_still = true;
 
+//generation variables
+let gradualVal = 2;  
+let generatedOrb = [];
+
+
 // populate boltz distribution table
 let boltz = []; 
 
@@ -294,7 +299,7 @@ function updateSpherePosition() {
 }
 
 function recombinationAnim() {
-    const lerpSpeed = 0.01; // Adjust for faster/slower lerping
+    const lerpSpeed = 0.005; // Adjust for faster/slower lerping
     const removalThreshold = 0.95; // When to consider spheres "recombined"
     const pauseDuration = 60; // Number of frames to pause (adjust as needed)
 
@@ -341,7 +346,7 @@ function recombinationAnim() {
                 // Check if lerping is complete
                 
                 // alright we only want to create the orb once, so only create if an orb does not exist
-                if (sphere.lerpProgress >= .50 && !sphere.orb) { // when lerping is half way done, create an orb 
+                if (sphere.lerpProgress >= .25 && !sphere.orb) { // when lerping is half way done, create an orb 
                     const orbGeo = new THREE.SphereGeometry(startingRadius, 32, 32);
                     const orbMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4});
                     const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
@@ -392,49 +397,62 @@ function generation() {
         THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
         THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
         THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
-
-    //why is only one moving away and the other is not moving. maybe lets check velocities....
-    let hole = createSphereAt(position.clone().add(new THREE.Vector3(0.5, 0, 0)), 0xFF3131, false);
+    // holes and electron are created at the same position
+    let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
     let electron = createSphereAt(position, 0x1F51FF, false);
 
-    //orb
-    const orbGeo = new THREE.SphereGeometry(3, 32, 32);
-    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.3});
+
+    //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
+    const orbGeo = new THREE.SphereGeometry(1, 32, 32);
+    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
     const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
 
-    orbSphere.position.set(position.x, position.y, position.z);
-    scene.add(orbSphere);
-
-
-    setTimeout(()=> {
-        hole.canMove = true;
-        electron.canMove = true;
-        holeSpheres.push({pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: false, canMove: hole.canMove, id: 'generated', object: hole.object, material: hole.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-        electronSpheres.push({pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: false, canMove: electron.canMove, id: 'generated', object: electron.object, material: electron.material, velocity: randomVelocity_e, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
-        scene.remove(orbSphere); 
-    }, 2000);
+    let midpoint = hole.object.position.add(electron.object.position).multiplyScalar(0.5);
     
+    //orb set to same position as hole and electron
+    orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
+    orbSphere.gradualVal = 0.5;
+ 
+    scene.add(orbSphere);
+    let requestID;
+    let maxOrbSize = 5;
+    //push orb into array that I can access outside of this function to update the scale...
+    setTimeout(()=>{
+       let boolean = true;
+        var animateGeneration = (timestamp) => {
+            if (orbSphere.gradualVal !== undefined) {
+                if (orbSphere.gradualVal <= maxOrbSize && orbSphere.material.opacity > 0) {
+                    orbSphere.scale.setScalar(orbSphere.gradualVal);
+                    // Calculate opacity based on the current scale
+                    let opacityFactor = Math.max(0, 1 - (orbSphere.gradualVal - 1) / (maxOrbSize - 1));
+                    orbSphere.material.opacity = opacityFactor;
+                    
+                    orbSphere.gradualVal += 0.03; // Reduced speed for smoother animation
+                    let holeSpeed = new THREE.Vector3(-0.02, 0, 0);
+                    let electronSpeed =  new THREE.Vector3(0.02, 0, 0);
+                    hole.object.position.add(holeSpeed);
+                    electron.object.position.add(electronSpeed);
+                    
+                } else {
+                    boolean = false;
+                    scene.remove(orbSphere);
+                    hole.canMove = true;
+                    electron.canMove = true;
+                    holeSpheres.push({pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: false , id: 'generated', canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+                    electronSpheres.push({pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: false, id: 'generated', canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
+                } 
+            }
+            if (boolean == true) {
+            requestID = requestAnimationFrame(animateGeneration);
+            }
+           }
+           requestAnimationFrame(animateGeneration);   
+           cancelAnimationFrame(requestID)
+ 
+    }, 1000);
 
-    // if (!hold_still) {
-    //     console.log("no more still");
-    //     // using distance between the two spheres, I can determine the scale of the orb?
-    //     let distance = electron.object.position.distanceTo(hole.object.position);
-    //     console.log(distance);
-    //     orbSphere.scale.setScalar(Math.max(3, distance));
-    // }
 
-    let randomVelocity_h = getBoltzVelocity();
-    let randomVelocity_e = getBoltzVelocity();
-  
-
-
-   
-    setTimeout(generation, 5000);
-}
-
-// Easing function for smooth transition
-function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
+    setTimeout(generation, 2000);
 }
 
 function canRecombine(electron, hole) {
