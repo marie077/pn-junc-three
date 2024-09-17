@@ -275,7 +275,7 @@ function battery_anim() {
                     lerpProgress: 0,
                     lerping: false,
                     lerpPartner: new THREE.Vector3(),
-                    recombine: false,
+                    recombine: true,
                     id: 'generated',
                     canMove: sphere.canMove,
                     object: sphere.object,
@@ -300,7 +300,7 @@ function battery_anim() {
                     lerpProgress: 0,
                     lerping: false,
                     lerpPartner: new THREE.Vector3(),
-                    recombine: false,
+                    recombine: true,
                     id: 'generated',
                     canMove: sphere.canMove,
                     object: sphere.object,
@@ -402,7 +402,7 @@ function recombinationAnim() {
         for (let j = 0; j < holeSpheres.length; j++) {
             if (!electronSpheres[i] || !holeSpheres[j]) continue;
             
-            if (canRecombine(electronSpheres[i], holeSpheres[j]) && checkCollision(electronSpheres[i], holeSpheres[j])) {
+            if (checkCollision(electronSpheres[i], holeSpheres[j])) {
                 if (!electronSpheres[i].lerping && !holeSpheres[j].lerping) {
                     console.log("Collision detected, starting pause");
                     electronSpheres[i].lerping = true;
@@ -509,7 +509,7 @@ function generation() {
  
     scene.add(orbSphere);
     let requestID;
-    let maxOrbSize = 5;
+    let maxOrbSize = 6;
     //push orb into array that I can access outside of this function to update the scale...
     setTimeout(()=>{
        let boolean = true;
@@ -532,8 +532,13 @@ function generation() {
                     scene.remove(orbSphere);
                     hole.canMove = true;
                     electron.canMove = true;
-                    holeSpheres.push({crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: false , id: 'generated', canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-                    electronSpheres.push({crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: false, id: 'generated', canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
+                    let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
+                    if (distance >= 6) {
+                        hole.recombine = true;
+                        electron.recombine = true;
+                    }
+                    holeSpheres.push({crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+                    electronSpheres.push({crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
                 } 
             }
             if (boolean == true) {
@@ -549,35 +554,17 @@ function generation() {
     setTimeout(generation, 2000);
 }
 
-function canRecombine(electron, hole) {
-    if (electron.id == 'generated' && hole.id == 'generated') {
-        let distancePostGenerated = new THREE.Vector3().subVectors(electron.object.position, hole.object.position).length();
-        if (distancePostGenerated > 3) {
-            electronSpheres.recombine = true;
-            holeSpheres.recombine = true;
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        return true;
-    }
-}
-
 function checkCollision(electron, hole) {
     // collision check...
     // if two are created from generation then they can't recombine
     let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
     let coll_dist = 5;
-    if (distance <= coll_dist) {
-        if (electron.id == 'generated' && hole.id == 'generated') {
-            return false;
-        } else {
-            console.log("collided");
+    if (electron.recombine && hole.recombine) {
+        if (distance <= coll_dist) {
             return true;
+        } else {
+            return false;
         }
-    } else {
-     return false;
     }
 }
 
