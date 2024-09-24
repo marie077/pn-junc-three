@@ -17,3 +17,15 @@
 	position: inherit;
 	left: 900px;
 }
+
+#positive {
+	position: inherit;
+	top: 80px;
+	right: 875px;
+}
+
+#negative {
+	position: inherit;
+	top: 80px;
+	left: 875px;
+}

@@ -33,7 +33,6 @@ let boxMax = (cubeSize.x/2) - 1;
 
 //electric field attributes
 let arrowNegative;
-let arrowPositive;
 let innerBoxSize = 25;
 let innerCubeGeometry;
 let innerCubeMaterial;
@@ -42,19 +41,11 @@ let voltage = 0.0;
 let accScalar = 1.0;
 
 //boltzmann distribution variables
-let energy = 0.0;
-const temperature = 300;
-const boltzmann_const = 1.380649e-23
 let scalar = 0.5;
 
 //scatter variables
 let scatterTimeMean = 2;
 const perlin = new ImprovedNoise();
-
-//recombination variables
-const loader = new GLTFLoader();
-let ready_recombine = false;
-let hold_still = true;
 
 //battery variables
 let battery = [];
@@ -215,13 +206,19 @@ function init() {
     cube1.computeLineDistances();
     cube1.position.set(0, 0, 0);
 
-    const batteryCubeGeo = box(cubeSize.x/3, cubeSize.y/3, cubeSize.z/3);
-    const batteryMaterial = new THREE.LineDashedMaterial({ color: 0xFFFFFF, dashSize: 3, gapSize: 1});
-    let battery = new THREE.LineSegments(batteryCubeGeo, batteryMaterial);
-    battery.computeLineDistances();
-    battery.position.set(0, -75, 0);
+    //battery geometry
+    const batteryCylinderGeo =  new THREE.CylinderGeometry( 10, 10, 60, 32 );
+    const wireframe = new THREE.WireframeGeometry( batteryCylinderGeo );
 
-    scene.add(battery);
+    const battery = new THREE.LineSegments( wireframe );
+    battery.rotateZ(Math.PI/2);
+
+    battery.material.depthTest = false;
+    battery.material.opacity = 0.25;
+    battery.material.transparent = true;
+    battery.position.set(0, -70, 0);
+
+    scene.add( battery );
 
     // create a plane in the middle to separate P type and N type
     const planeGeo = new THREE.PlaneGeometry(cubeSize.z, cubeSize.y);
@@ -282,12 +279,11 @@ function update() {
     innerCube.computeLineDistances();
     
     innerCube.position.set(0, 0, 0);
-
     scene.add(innerCube);
 
     // ARROW IMPLEMENTATION
-    const origin = new THREE.Vector3( 0, 70, 0 );
-    const length = 50;
+    const origin = new THREE.Vector3(0, 70, 0 );
+    const length = innerBoxSize;
     const hex = 0xffff00;
 
     updateArrow(origin, length, hex);
@@ -300,8 +296,8 @@ function update() {
     addAcceleration(holeSpheres, innerBoxSize, time, 1);
 
     recombinationAnim();
-     
     //check if a hole or electron needs to be supplied if they cross only if voltage level is not zero
+
     if (voltage > 0 || voltage < 0) {
         sphereCrossed(electronSpheres, 'e');
         sphereCrossed(holeSpheres, 'h');
@@ -352,10 +348,27 @@ function battery_anim() {
                     if (voltage < 0) {
                         sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
 
+                        sphere.object.material.transparent = true;
+
+                        // Update opacity based on elapsed time
+                        // Calculate the distance from the electron to the edge of the system
+                        let distanceFromEdge = Math.abs(sphere.object.position.x - cubeSize.x/2);
+                        let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
+                        let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
+                        
+                        sphere.object.material.opacity = opacity;
+
+                        if (opacity <= 0) {
+                            // Remove the electron from the scene and battery array
+                            scene.remove(sphere.object);
+                            battery.splice(i, 1);
+                        }
+
                     } else {
                         sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
                     }
-                }            
+                }
+                           
             } else if (sphere.value == 'h') { // hole
                 if (spherePosition.x > -cubeSize.x/2 + 1) {
                     sphere.canMove = true;
@@ -381,6 +394,21 @@ function battery_anim() {
                 } else {
                     if (voltage < 0) {
                         sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
+                        sphere.object.material.transparent = true;
+
+                        // Update opacity based on elapsed time
+                        // Calculate the distance from the electron to the edge of the system
+                        let distanceFromEdge = Math.abs(sphere.object.position.x - (-cubeSize.x/2));
+                        let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
+                        let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
+                        
+                        sphere.object.material.opacity = opacity;
+
+                        if (opacity <= 0) {
+                            // Remove the electron from the scene and battery array
+                            scene.remove(sphere.object);
+                            battery.splice(i, 1);
+                        }
 
                     } else {
                         sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
@@ -526,7 +554,7 @@ function recombinationAnim() {
 
                     // Update opacity
                     sphere.orb.material.opacity = 0.4 * Math.max(0, scale);  
-                    if ( sphere.orb.material.opacity == 0) {
+                    if ( sphere.orb.material.opacity == 0 || voltage == 0) {
                         scene.remove(sphere.orb);
                     }                 
                 }
@@ -811,28 +839,16 @@ function createSphereAt(position, sphereColor, transparency) {
 function updateArrow(origin, length, hex) {
     if (voltage === 0) {
         scene.remove(arrowNegative);
-        scene.remove(arrowPositive);
         arrowNegative = null;
-        arrowPositive = null;
-    } else if (voltage < 0) {
-        scene.remove(arrowPositive);
-        arrowPositive =  null;
-    } else if (voltage > 0) {
-        scene.remove(arrowNegative);
-        arrowNegative = null;
-    }
-    
-    if (voltage < 0) {
+    } 
+    if (voltage < 0 || voltage > 0) {
         if (!arrowNegative) {
-            arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(voltage, 0, 0), origin, length, hex );
+            voltage = Math.abs(voltage);
+            arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-voltage, 0, 0), origin, length, hex );
             scene.add(arrowNegative);
+        } else {
+            arrowNegative.setLength(length); // Update arrow length as the innerBoxSize changes
         }
-        
-    } else if (voltage > 0) {
-        if (!arrowPositive) {
-            arrowPositive = new THREE.ArrowHelper(new THREE.Vector3(voltage, 0, 0), origin, length, hex );
-            scene.add(arrowPositive);
-        }    
     } 
 }
 
