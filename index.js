@@ -10,13 +10,9 @@ import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/G
 let container, camera, scene, renderer;
 let voltageLevel;
 let cameraControls;
-let accScale;
-let energyLevel;
-let boltzScale;
 let gui;
 let minScalar = 0.22;
 let maxScalar = 0.88;
-let shouldAnimate = false;
 
 //PN Junction Initial Variables
 let electronSpheres = [];
@@ -38,7 +34,6 @@ let innerCubeGeometry;
 let innerCubeMaterial;
 let innerCube;
 let voltage = 0.0;
-let accScalar = 1.0;
 
 //boltzmann distribution variables
 let scalar = 0.5;
@@ -48,7 +43,8 @@ let scatterTimeMean = 2;
 const perlin = new ImprovedNoise();
 
 //battery variables
-let battery = [];
+let positiveBatteryElements = [];
+let negativeBatteryElements = [];
 
 
 // populate boltz distribution table
@@ -101,16 +97,11 @@ function init() {
         rotateY: MathUtils.degToRad(0),
     };
 
-    boltzScale = {
-        scale: 0.5,
-    }
     voltageLevel = {
         x: 0.0,
     };
 
-    accScale = {
-        scale: 1.0,
-    }
+  
 
     const resetButton = { 'Reset Cube': resetGUI };
 
@@ -125,16 +116,8 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
+    gui.add(voltageLevel, 'x', -1.4, 0.3).name('Voltage (V)').step(0.1).onChange(() => {
         voltage = voltageLevel.x;
-    });
-
-    gui.add(boltzScale, 'scale', 0.5, 1.0).name('Boltz Scale').step(0.1).onChange(() => {
-        scalar = boltzScale.scale;
-    });
-
-    gui.add(accScale, 'scale', 0.1, 10).name('Acceleration Scalar').step(0.1).onChange(() => {
-        accScalar = accScale.scale;
     });
 
 
@@ -282,8 +265,8 @@ function update() {
     scene.add(innerCube);
 
     // ARROW IMPLEMENTATION
-    const origin = new THREE.Vector3(0, 70, 0 );
-    const length = innerBoxSize;
+    const origin = new THREE.Vector3(innerBoxSize/2, 70, 0 );
+    const length = innerBoxSize + 10;
     const hex = 0xffff00;
 
     updateArrow(origin, length, hex);
@@ -303,9 +286,14 @@ function update() {
         sphereCrossed(holeSpheres, 'h');
     }
  
-    if (battery.length > 0) { //if something exists in battery
-        battery_anim();
+    if (positiveBatteryElements.length > 0) { //if something exists in battery
+        positive_battery_anim();
     }
+
+    //let's do it separately
+    // if (negativeBatteryElements.length > 0) {
+    //     negative_battery_anim();
+    // }
 
     // checkPositionForCharge(holeSpheres, 'h');
 
@@ -318,131 +306,163 @@ function update() {
 	renderer.render( scene, camera );
 }
 
-function battery_anim() {
-        for (let i = battery.length - 1; i >= 0; i--) {
-            let sphere = battery[i];
-            let spherePosition = sphere.object.position;
-            if (sphere.value == 'e') {
-                if (spherePosition.x < cubeSize.x/2 - 1) {
-                    sphere.canMove = true;
-                    electronSpheres.push({
-                        crossed: false,
-                        pause: false,
-                        lerpProgress: 0,
-                        lerping: false,
-                        lerpPartner: new THREE.Vector3(),
-                        recombine: true,
-                        id: 'generated',
-                        canMove: sphere.canMove,
-                        object: sphere.object,
-                        material: sphere.material,
-                        velocity: getBoltzVelocity(),
-                        speed: Math.random() * (maxScalar - minScalar + 1) + minScalar,
-                        scatterStartTime: performance.now(),
-                        scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
-                    });
+function positive_battery_anim() {
+    for (let i = positiveBatteryElements.length - 1; i >= 0; i--) {
+        let sphere = positiveBatteryElements[i];
+        let spherePosition = sphere.object.position;
+        if (sphere.value == 'e') {
+            if (spherePosition.x < cubeSize.x/2 - 1) {
+                sphere.canMove = true;
+                electronSpheres.push({
+                    crossed: false,
+                    pause: false,
+                    lerpProgress: 0,
+                    lerping: false,
+                    lerpPartner: new THREE.Vector3(),
+                    recombine: true,
+                    id: 'generated',
+                    canMove: sphere.canMove,
+                    object: sphere.object,
+                    material: sphere.material,
+                    velocity: getBoltzVelocity(),
+                    speed: Math.random() * (maxScalar - minScalar + 1) + minScalar,
+                    scatterStartTime: performance.now(),
+                    scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
+                });
+                
+                // Remove the electron from the battery array
+                positiveBatteryElements.splice(i, 1);
+            } else {
+                sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
+                // if (voltage < 0) {
+                //     sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
+
+                //     sphere.object.material.transparent = true;
+
+                //     // Update opacity based on elapsed time
+                //     // Calculate the distance from the electron to the edge of the system
+                //     let distanceFromEdge = Math.abs(sphere.object.position.x - cubeSize.x/2);
+                //     let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
+                //     let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
                     
-                    // Remove the electron from the battery array
-                    battery.splice(i, 1);
-                } else {
-                    if (voltage < 0) {
-                        sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
+                //     sphere.object.material.opacity = opacity;
 
-                        sphere.object.material.transparent = true;
+                //     if (opacity <= 0) {
+                //         // Remove the electron from the scene and battery array
+                //         scene.remove(sphere.object);
+                //         positiveBatteryElements.splice(i, 1);
+                //     }
 
-                        // Update opacity based on elapsed time
-                        // Calculate the distance from the electron to the edge of the system
-                        let distanceFromEdge = Math.abs(sphere.object.position.x - cubeSize.x/2);
-                        let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
-                        let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
-                        
-                        sphere.object.material.opacity = opacity;
-
-                        if (opacity <= 0) {
-                            // Remove the electron from the scene and battery array
-                            scene.remove(sphere.object);
-                            battery.splice(i, 1);
-                        }
-
-                    } else {
-                        sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
-                    }
-                }
-                           
-            } else if (sphere.value == 'h') { // hole
-                if (spherePosition.x > -cubeSize.x/2 + 1) {
-                    sphere.canMove = true;
-                    holeSpheres.push({
-                        crossed: false,
-                        pause: false,
-                        lerpProgress: 0,
-                        lerping: false,
-                        lerpPartner: new THREE.Vector3(),
-                        recombine: true,
-                        id: 'generated',
-                        canMove: sphere.canMove,
-                        object: sphere.object,
-                        material: sphere.material,
-                        velocity: getBoltzVelocity(),
-                        speed: Math.random() * (maxScalar - minScalar + 1) + minScalar,
-                        scatterStartTime: performance.now(),
-                        scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
-                    });
-                    
-                    // Remove the electron from the battery array
-                    battery.splice(i, 1);
-                } else {
-                    if (voltage < 0) {
-                        sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
-                        sphere.object.material.transparent = true;
-
-                        // Update opacity based on elapsed time
-                        // Calculate the distance from the electron to the edge of the system
-                        let distanceFromEdge = Math.abs(sphere.object.position.x - (-cubeSize.x/2));
-                        let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
-                        let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
-                        
-                        sphere.object.material.opacity = opacity;
-
-                        if (opacity <= 0) {
-                            // Remove the electron from the scene and battery array
-                            scene.remove(sphere.object);
-                            battery.splice(i, 1);
-                        }
-
-                    } else {
-                        sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
-                    }
-                } 
+                // }
             }
+                        
+        } else if (sphere.value == 'h') { // hole
+            if (spherePosition.x > -cubeSize.x/2 + 1) {
+                sphere.canMove = true;
+                holeSpheres.push({
+                    crossed: false,
+                    pause: false,
+                    lerpProgress: 0,
+                    lerping: false,
+                    lerpPartner: new THREE.Vector3(),
+                    recombine: true,
+                    id: 'generated',
+                    canMove: sphere.canMove,
+                    object: sphere.object,
+                    material: sphere.material,
+                    velocity: getBoltzVelocity(),
+                    speed: Math.random() * (maxScalar - minScalar + 1) + minScalar,
+                    scatterStartTime: performance.now(),
+                    scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
+                });
+                
+                // Remove the electron from the battery array
+                positiveBatteryElements.splice(i, 1);
+            } else {
+                sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
+
+                // if (voltage < 0) {
+                //     sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
+                //     sphere.object.material.transparent = true;
+
+                //     // Update opacity based on elapsed time
+                //     // Calculate the distance from the electron to the edge of the system
+                //     let distanceFromEdge = Math.abs(sphere.object.position.x - (-cubeSize.x/2));
+                //     let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
+                //     let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
+                    
+                //     sphere.object.material.opacity = opacity;
+
+                //     if (opacity <= 0) {
+                //         // Remove the electron from the scene and battery array
+                //         scene.remove(sphere.object);
+                //         positiveBatteryElements.splice(i, 1);
+                //     }
+
+                // }
+            } 
         }
+        }
+    
 }
 
 //keeps track of the newly created electrons/holes after a sphere crosses to the other side
 function sphereCrossed(typeArray, type) { 
     for (let i = 0; i < typeArray.length; i++) {
         let spherePosition = typeArray[i].object.position.x;
-        if (type == 'e') {
-            //if electron makes it to the otherside of the box
-            if (-cubeSize.x/2 + 1 < spherePosition && spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
-                //create a new electron outside the box
-                let position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
-                let electron = createSphereAt(position, 0x1F51FF, false);
-                electron.value = "e";
-                typeArray[i].crossed = true;
-                battery.push(electron);
+        if (voltage > 0) {
+            if (type == 'e') {
+                //if electron makes it to the otherside of the box
+                //maybe second conditional isn't needed...
+                if (-cubeSize.x/2 + 1 < spherePosition && spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
+                    //create a new electron outside the box
+                    let position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
+                    let electron = createSphereAt(position, 0x1F51FF, false);
+                    electron.value = "e";
+                    typeArray[i].crossed = true;
+                    positiveBatteryElements.push(electron);
+                }
+            } else if (type == 'h') {
+                //confirm this
+                if ((innerBoxSize/2 < spherePosition && spherePosition < cubeSize.x/2 - 1) && !typeArray[i].crossed) {
+                    //create a new electron outside the box
+                    let position = new THREE.Vector3(-cubeSize.x/2 - 50, 0, 0);
+                    let hole = createSphereAt(position, 0xFF3131, false);
+                    hole.value = "h";
+                    typeArray[i].crossed = true;
+                    positiveBatteryElements.push(hole);
+                } 
             }
-        } else if (type == 'h') {
-            if ((innerBoxSize/2 < spherePosition && spherePosition < cubeSize.x/2 - 1) && !typeArray[i].crossed) {
-                //create a new electron outside the box
-                let position = new THREE.Vector3(-cubeSize.x/2 - 50, 0, 0);
-                let hole = createSphereAt(position, 0xFF3131, false);
-                hole.value = "h";
-                typeArray[i].crossed = true;
-                battery.push(hole);
-            } 
         }
+        // } else if (voltage < 0) {
+        //     if (type == 'e') {
+        //         //if electron crosses the middle plate and hasn't crossed before
+        //         if (spherePosition <= 0 && !typeArray[i].crossed) {
+        //             //create an electron to send out to battery
+        //             // adjust origin position as needed
+        //             let position = new THREE.Vector3(cubeSize.x/2, 0, 0);
+        //             let electron = createSphereAt(position, 0x1F51FF, false);
+        //             electron.value = "e";
+        //             typeArray[i].crossed = true;
+        //             negativeBatteryElements.push(electron);
+        //         }
+        //     } else if (type == 'h') {
+        //         // hole crosses middle plate and hasn't crossed yet
+        //         if (spherePosition >= 0 && !typeArray[i].crossed) {
+        //             //create a new electron outside the box
+        //             let position = new THREE.Vector3(-cubeSize.x/2, 0, 0);
+        //             let hole = createSphereAt(position, 0xFF3131, false);
+        //             hole.value = "h";
+        //             typeArray[i].crossed = true;
+        //             negativeBatteryElements.push(hole);
+        //         } 
+        //     }
+        // }
     } 
+}
+
+function sphereCrossedMiddle(typeArray, type) {
+
 }
 
 function addAcceleration(type, innerBoxSize, time, scalar) {
@@ -464,9 +484,6 @@ function addAcceleration(type, innerBoxSize, time, scalar) {
         if ((-cubeSize.x/2 + 1 < spherePosition && spherePosition < -innerBoxSize/2) || (innerBoxSize/2 < spherePosition && spherePosition < cubeSize.x/2 - 1) || (spherePosition == 0)) {
             acc = new THREE.Vector3(0, 0, 0);
         }
-    
-        //multiply scalar to acceleration
-        acc.multiplyScalar(accScalar);
     
         if (scalar < 0) {
             electronSpheres[i].velocity.add(acc.multiplyScalar(time).multiplyScalar(scalar));
@@ -554,7 +571,7 @@ function recombinationAnim() {
 
                     // Update opacity
                     sphere.orb.material.opacity = 0.4 * Math.max(0, scale);  
-                    if ( sphere.orb.material.opacity == 0 || voltage == 0) {
+                    if ( sphere.orb.material.opacity == 0) {
                         scene.remove(sphere.orb);
                     }                 
                 }
@@ -807,8 +824,15 @@ function createSphere(i, minPos, maxPos, sphereColor, transparency) {
     if (transparency) {
         opacityVal = 0.6;
     }
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal});
+    let geometry;
+    let material;
+    geometry = new THREE.SphereGeometry(1, 32, 32);
+
+    if (sphereColor === 0xFF3131) {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, wireframe: true}); 
+    } else {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal}); 
+    }
     const sphere = new THREE.Mesh(geometry, material);
 
     // Random position within the cube as specified
@@ -823,11 +847,18 @@ function createSphere(i, minPos, maxPos, sphereColor, transparency) {
 
 function createSphereAt(position, sphereColor, transparency) {
     let opacityVal = null;
+    let geometry;
+    let material;
     if (transparency) {
         opacityVal = 0.6;
     }
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal});
+    geometry = new THREE.SphereGeometry(1, 32, 32);
+
+    if (sphereColor === 0xFF3131) {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, wireframe: true}); 
+    } else {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal}); 
+    }
     const sphere = new THREE.Mesh(geometry, material);
 
     // Random position within the cube as specified
