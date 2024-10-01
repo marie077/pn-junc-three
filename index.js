@@ -8,6 +8,7 @@ import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/G
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
+let updateId;
 let voltageLevel;
 let cameraControls;
 let gui;
@@ -70,23 +71,21 @@ function init() {
         }
     }
     
-    container = document.createElement( 'div' );
-    document.body.appendChild( container );
+    container = document.getElementById('three-container');
     //scene
     scene = new THREE.Scene();
-
-    const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
-    scene.add( light );
     //camera
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1500 );
-    // camera.position.x = 86;
-    // camera.rotation.y = MathUtils.degToRad(38);
+    camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 116;
     //renderer
     renderer = new THREE.WebGLRenderer();
-
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    
     container.appendChild( renderer.domElement );
+
+    //lighting
+    const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
+    scene.add( light );
 
    
     // GUI
@@ -116,7 +115,7 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1.4, 0.3).name('Voltage (V)').step(0.1).onChange(() => {
+    gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
         voltage = voltageLevel.x;
     });
 
@@ -127,9 +126,10 @@ function init() {
     // });
     // Add a button to reset GUI controls
     gui.add(resetButton, 'Reset Cube');
+    
 
     // window resize handler
-    window.addEventListener( 'resize', onWindowResize );
+    window.addEventListener( 'resize', onWindowResize);
 
     // Create an angular path
     const curvePath = new THREE.CurvePath();
@@ -244,7 +244,7 @@ function init() {
 }
 
 function update() {
-	requestAnimationFrame( update );
+	updateId = requestAnimationFrame( update );
     let currentTime = performance.now();
     let time = clock.getDelta()/15;
 
@@ -970,10 +970,10 @@ function box( width, height, depth ) {
 
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
-
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize(container.clientWidth, container.clientHeight, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 }
 
 
