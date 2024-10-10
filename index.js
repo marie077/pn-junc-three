@@ -437,33 +437,24 @@ function sphereCrossed(typeArray, type) {
                 if (-cubeSize.x/2 + 1 < spherePosition && spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
                     //create a new electron outside the box
                     let position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
-                    let position2 = new THREE.Vector3(cubeSize.x/2 + 51, 0, 0);
-
                     let electron = createSphereAt(position, 0x1F51FF, false);
-                    let electron2 = createSphereAt(position2, 0x1F51FF, false);
 
                     electron.value = "e";
-                    electron2.value = "e";
                     typeArray[i].crossed = true;
                     positiveBatteryElements.push(electron);
-                    positiveBatteryElements.push(electron2);
                 }
             } else if (type == 'h') {
                 //confirm this
                 if ((innerBoxSize/2 < spherePosition && spherePosition < cubeSize.x/2 - 1) && !typeArray[i].crossed) {
                     //create a new electron outside the box
                     let position = new THREE.Vector3(-cubeSize.x/2 - 50, 0, 0);
-                    let position2 = new THREE.Vector3(-cubeSize.x/2 - 51, 0, 0);
 
                     let hole = createSphereAt(position, 0xFF3131, false);
-                    let hole2 = createSphereAt(position2, 0xFF3131, false);
 
                     hole.value = "h";
-                    hole2.value = "h";
 
                     typeArray[i].crossed = true;
                     positiveBatteryElements.push(hole);
-                    positiveBatteryElements.push(hole2);
                 } 
             }
         } else if (voltage < 0) {
@@ -476,8 +467,8 @@ function sphereCrossed(typeArray, type) {
                     typeArray[i].crossed = true;
                     negativeBatteryElements.push(electron);
 
-                    //remove last electron from the existing electronArray
-                    let randomIndex = Math.random() * (electronSpheres.length);
+                    //remove random electron from the existing electronArray
+                    let randomIndex = Math.floor(Math.random() * electronSpheres.length);
                     scene.remove(electronSpheres[randomIndex].object);
                     electronSpheres[randomIndex].object.geometry.dispose();
                     electronSpheres[randomIndex].object.material.dispose();
@@ -493,7 +484,7 @@ function sphereCrossed(typeArray, type) {
                     negativeBatteryElements.push(hole);
 
                     //remove last electron from the existing electronArray
-                    let randomIndex = Math.random() * (holeSpheres.length);
+                    let randomIndex = Math.floor(Math.random() * holeSpheres.length);
                     scene.remove(holeSpheres[randomIndex].object);
                     holeSpheres[randomIndex].object.geometry.dispose();
                     holeSpheres[randomIndex].object.material.dispose();
@@ -569,7 +560,9 @@ function recombinationAnim() {
                     holeSpheres[j].pauseCounter = 0;
                     electronSpheres[i].lerpProgress = 0;
                     holeSpheres[j].lerpProgress = 0;
-
+                    
+                    electronSpheres[i].object.material.color.set(new THREE.Color(0x05D9FF));
+                    holeSpheres[j].object.material.color.set(new THREE.Color(0xff9cb0));
                     // Set velocity to zero during pause
                     electronSpheres[i].velocity.set(0, 0, 0);
                     holeSpheres[j].velocity.set(0, 0, 0);
@@ -596,7 +589,7 @@ function recombinationAnim() {
                 sphere.lerpProgress += lerpSpeed;
             
                 sphere.object.position.lerp(sphere.targetPosition, sphere.lerpProgress);
-                let startingRadius = 5;
+                let startingRadius = 3;
                 // Check if lerping is complete
                 
                 // alright we only want to create the orb once, so only create if an orb does not exist
@@ -729,7 +722,7 @@ function checkCollision(electron, hole) {
     // collision check...
     // if two are created from generation then they can't recombine
     let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
-    let coll_dist = 5;
+    let coll_dist = 10;
     if (electron.recombine && hole.recombine) {
         if (distance <= coll_dist) {
             return true;
