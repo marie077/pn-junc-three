@@ -687,7 +687,7 @@ function generation() {
                     scene.remove(orbSphere);
                     hole.canMove = true;
                     electron.canMove = true;
-                    hole.crossReady = false
+                    hole.crossReady = false;
                     electron.crossReady = false;
                     hole.recombine = false;
                     electron.recombine = false;
