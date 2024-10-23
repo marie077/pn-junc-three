@@ -1,10 +1,8 @@
 import * as THREE from 'https://unpkg.com/three@0.163.0/build/three.module.js'; 
-import { MathUtils } from 'https://unpkg.com/three/src/math/MathUtils.js';
-import { ImprovedNoise } from 'https://unpkg.com/three/examples/jsm/math/ImprovedNoise.js';
+import { MathUtils } from 'https://unpkg.com/three@0.163.0/src/math/MathUtils.js';
+import { ImprovedNoise } from 'https://unpkg.com/three@0.163.0/examples/jsm/math/ImprovedNoise.js';
 import * as BufferGeometryUtils from 'https://unpkg.com/three@0.163.0/examples/jsm/utils/BufferGeometryUtils.js';
-import { Sphere } from 'https://unpkg.com/three@0.163.0/src/math/Sphere.js';
 import { Vector3 } from 'https://unpkg.com/three@0.163.0/src/math/Vector3.js';
-import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/GLTFLoader.js'
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
@@ -52,6 +50,10 @@ let negativeBatteryElements = [];
 let boltz = []; 
 
 //populated boltz array
+
+//recombination variables
+let minDistance = 30;
+
 init();
 update();
 
@@ -280,6 +282,7 @@ function update() {
     addAcceleration(electronSpheres, innerBoxSize, time, -1);
     addAcceleration(holeSpheres, innerBoxSize, time, 1);
 
+    updateRecombinationStatus();
     recombinationAnim();
     //check if a hole or electron needs to be supplied if they cross only if voltage level is not zero
 
@@ -689,13 +692,21 @@ function generation() {
                     hole.recombine = false;
                     electron.recombine = false;
                     boolean = false;
+<<<<<<< HEAD
                 
                     //where should I check for the distance to change recombine to true?
+=======
+>>>>>>> a1da7698faf44d2f8ce4e80e9524fb6f2a6a06bc
                    
-                    holeSpheres.push({crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-                    electronSpheres.push({crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
+                   
+                    holeSpheres.push({initPos: hole.object.position.clone(), crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+                    electronSpheres.push({initPos: electron.object.position.clone(), crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
                     
+<<<<<<< HEAD
                 
+=======
+                  
+>>>>>>> a1da7698faf44d2f8ce4e80e9524fb6f2a6a06bc
                     // if (hole.object.position <= 0) {
                     //     hole.crossReady = true;
                     // }
@@ -717,11 +728,27 @@ function generation() {
     setTimeout(generation, 2000);
 }
 
+function updateRecombinationStatus() {
+    for (let electron of electronSpheres) {
+        for (let hole of holeSpheres) {
+            if (electron.initPos != undefined && hole.initPos != undefined) {
+                let electronDistance = electron.object.position.distanceTo(electron.initPos);
+                let holeDistance = hole.object.position.distanceTo(hole.initPos);
+
+                if (electronDistance > minDistance && holeDistance > minDistance) {
+                    electron.recombine = true;
+                    hole.recombine = true;
+                }
+            }
+        }
+    }
+}
+
 function checkCollision(electron, hole) {
     // collision check...
     // if two are created from generation then they can't recombine
     let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
-    let coll_dist = 10;
+    let coll_dist = 20;
     if (electron.recombine && hole.recombine) {
         if (distance <= coll_dist) {
             return true;
