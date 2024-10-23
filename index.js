@@ -272,65 +272,63 @@ function update() {
     // Recombination
         for (let i = 0; i < numSpheres; i++) {
             const e_sphere = electronSpheres[i];
-            if (e_sphere.id == 'electron generated') {
-                console.log('the regenerated electron is checking for collision');
-            }
-            for (let j = 0; j < numSpheres; j++) {
-                const h_sphere = holeSpheres[j];
-                if (electronSpheres[i].recombine == true && holeSpheres[j].recombine == true) {
- 
-                    if (checkCollision(e_sphere, h_sphere)) {
-                        // slow the colliding spheres down
-                        // turn it white lol
-                        // stop for like a second or so
-                        // fade out and remove from scene
-                        e_sphere.speed = 0.1;
-                        h_sphere.speed = 0.1;
-                        let collisionPoint = e_sphere.object.position.clone().add(h_sphere.object.position.clone()).sub(e_sphere.object.position);
-                        let size = 2;
-                        loader.load('./assets/gltf/light_effect.glb', async function (gltf) {
-                            const sparkModel = gltf.scene;
-                            await renderer.compileAsync(sparkModel, camera, scene);
-                            if (sparkModel) {
-                                console.log('model loaded and collision');
         
-        
-                                sparkModel.position.copy(collisionPoint);
-                                sparkModel.scale.setScalar(size);
-                                console.log(electronSpheres[i].object);
-                                scene.remove(electronSpheres[i].object);
-                                scene.remove(holeSpheres[j].object);
-        
-                                electronSpheres[i].object.geometry.dispose();
-                                holeSpheres[j].object.geometry.dispose();
-        
-                                electronSpheres[i].object.geometry.dispose();
-                                holeSpheres[j].object.material.dispose();
-        
-                                // electronSpheres[i].object = undefined;
-                                // holeSpheres[j].object = undefined;
-        
-                                // remove the e and h from array
-                                electronSpheres.splice(i, 1);
-                                holeSpheres.splice(j, 1);
-                                numSpheres--;
+            const h_sphere = holeSpheres[i];
+            if (electronSpheres[i].recombine == true && holeSpheres[i].recombine == true) {
 
-                                scene.add(sparkModel);
-        
-                                setTimeout(()=> {
-                                    scene.remove(sparkModel);
-                                }, 1000);
-                            } else {
-                                console.error('failed to load model');
-                            }
-        
-                        });
+                if (checkCollision(e_sphere, h_sphere)) {
+                    // slow the colliding spheres down
+                    // turn it white lol
+                    // stop for like a second or so
+                    // fade out and remove from scene
+                    e_sphere.speed = 0.1;
+                    h_sphere.speed = 0.1;
+                    console.log('collision');
+
+                    const midpoint = new THREE.Vector3().addVectors(e_sphere.object.position, h_sphere.object.position).multiplyScalar(0.5);
+
+                            
+                    //orb
+                    const orbGeo = new THREE.SphereGeometry(3, 32, 32);
+                    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.1});
+                    const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+                
+                 
+                    const direction = new THREE.Vector3().subVectors(e_sphere.object.position, h_sphere.object.position).normalize();
                     
-        
-                    
+                    electronSpheres[i].object.position.add(direction.clone().multiplyScalar(e_sphere.speed * time));
+                    holeSpheres[i].object.position.add(direction.clone().multiplyScalar(-h_sphere.speed * time));
+                  
+                    if (new Vector3().subVectors(electronSpheres[i].object.position, holeSpheres[i].object.position).length() <= 0) {
+                        console.log("positions are matched");
+                        orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
+                        scene.add(orbSphere);
+                        hold_still = true;
+                        setTimeout(()=> {
+                            scene.remove(orbSphere);
+                            hold_still = false;
+                        }, 1000);
+                
+                        scene.remove(electronSpheres[i].object);
+                        scene.remove(holeSpheres[i].object);
+    
+                        electronSpheres[i].object.geometry.dispose();
+                        holeSpheres[i].object.geometry.dispose();
+    
+                        electronSpheres[i].object.geometry.dispose();
+                        holeSpheres[i].object.material.dispose();
+    
+                        // electronSpheres[i].object = undefined;
+                        // holeSpheres[j].object = undefined;
+    
+                        // remove the e and h from array
+                        electronSpheres.splice(i, 1);
+                        holeSpheres.splice(i, 1);
+                        numSpheres--;
                     }
                 }
             }
+            
         }
    
    
