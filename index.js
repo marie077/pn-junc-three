@@ -1,10 +1,8 @@
 import * as THREE from 'https://unpkg.com/three@0.163.0/build/three.module.js'; 
-import { MathUtils } from 'https://unpkg.com/three/src/math/MathUtils.js';
-import { ImprovedNoise } from 'https://unpkg.com/three/examples/jsm/math/ImprovedNoise.js';
+import { MathUtils } from 'https://unpkg.com/three@0.163.0/src/math/MathUtils.js';
+import { ImprovedNoise } from 'https://unpkg.com/three@0.163.0/examples/jsm/math/ImprovedNoise.js';
 import * as BufferGeometryUtils from 'https://unpkg.com/three@0.163.0/examples/jsm/utils/BufferGeometryUtils.js';
-import { Sphere } from 'https://unpkg.com/three@0.163.0/src/math/Sphere.js';
 import { Vector3 } from 'https://unpkg.com/three@0.163.0/src/math/Vector3.js';
-import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/GLTFLoader.js'
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
