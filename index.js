@@ -692,12 +692,21 @@ function generation() {
                     hole.recombine = false;
                     electron.recombine = false;
                     boolean = false;
+<<<<<<< HEAD
+                
+                    //where should I check for the distance to change recombine to true?
+=======
+>>>>>>> a1da7698faf44d2f8ce4e80e9524fb6f2a6a06bc
                    
                    
                     holeSpheres.push({initPos: hole.object.position.clone(), crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
                     electronSpheres.push({initPos: electron.object.position.clone(), crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
                     
+<<<<<<< HEAD
+                
+=======
                   
+>>>>>>> a1da7698faf44d2f8ce4e80e9524fb6f2a6a06bc
                     // if (hole.object.position <= 0) {
                     //     hole.crossReady = true;
                     // }
