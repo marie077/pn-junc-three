@@ -8,55 +8,45 @@ import {GLTFLoader} from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/G
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
+let updateId;
 let voltageLevel;
 let cameraControls;
-let accScale;
-let energyLevel;
-let boltzScale;
 let gui;
 let minScalar = 0.22;
 let maxScalar = 0.88;
-let shouldAnimate = false;
 
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
-let numSpheres = 200;
+let numSpheres = 50;
 let cube1;
 let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
-let acc_hole = 0;
-let acc_electron = 0;
 
-let hBoundsMin = -(cubeSize.x/2) + 1;
-let hBoundsMax = (cubeSize.x/2) - 1;
-let eBoundsMin = -(cubeSize.x/2) + 1;
-let eBoundsMax = (cubeSize.x/2) - 1;
+
+let boxMin = -(cubeSize.x/2) + 1;
+let boxMax = (cubeSize.x/2) - 1;
+
 
 //electric field attributes
 let arrowNegative;
-let arrowPositive;
 let innerBoxSize = 25;
 let innerCubeGeometry;
 let innerCubeMaterial;
 let innerCube;
 let voltage = 0.0;
-let accScalar = 1.0;
 
 //boltzmann distribution variables
-let energy = 0.0;
-const temperature = 300;
-const boltzmann_const = 1.380649e-23
 let scalar = 0.5;
 
 //scatter variables
 let scatterTimeMean = 2;
 const perlin = new ImprovedNoise();
 
-//recombination variables
-const loader = new GLTFLoader();
-let ready_recombine = false;
-let hold_still = true;
+//battery variables
+let positiveBatteryElements = [];
+let negativeBatteryElements = [];
+
 
 // populate boltz distribution table
 let boltz = []; 
@@ -81,23 +71,21 @@ function init() {
         }
     }
     
-    container = document.createElement( 'div' );
-    document.body.appendChild( container );
+    container = document.getElementById('three-container');
     //scene
     scene = new THREE.Scene();
-
-    const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
-    scene.add( light );
     //camera
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1500 );
-    // camera.position.x = 86;
-    // camera.rotation.y = MathUtils.degToRad(38);
+    camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 116;
     //renderer
     renderer = new THREE.WebGLRenderer();
-
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    
     container.appendChild( renderer.domElement );
+
+    //lighting
+    const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
+    scene.add( light );
 
    
     // GUI
@@ -108,16 +96,11 @@ function init() {
         rotateY: MathUtils.degToRad(0),
     };
 
-    boltzScale = {
-        scale: 0.5,
-    }
     voltageLevel = {
         x: 0.0,
     };
 
-    accScale = {
-        scale: 1.0,
-    }
+  
 
     const resetButton = { 'Reset Cube': resetGUI };
 
@@ -132,16 +115,8 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1, 0.6).name('Voltage (V)').step(0.1).onChange(() => {
+    gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
         voltage = voltageLevel.x;
-    });
-
-    gui.add(boltzScale, 'scale', 0.5, 1.0).name('Boltz Scale').step(0.1).onChange(() => {
-        scalar = boltzScale.scale;
-    });
-
-    gui.add(accScale, 'scale', 0.1, 10).name('Acceleration Scalar').step(0.1).onChange(() => {
-        accScalar = accScale.scale;
     });
 
 
@@ -151,9 +126,61 @@ function init() {
     // });
     // Add a button to reset GUI controls
     gui.add(resetButton, 'Reset Cube');
+    
 
     // window resize handler
-    window.addEventListener( 'resize', onWindowResize );
+    window.addEventListener( 'resize', onWindowResize);
+
+    // Create an angular path
+    const curvePath = new THREE.CurvePath();
+
+    // Define the points for our angular path
+    const points = [
+    new THREE.Vector3(-75, 0, 10),
+    new THREE.Vector3(-120, 0, 10),
+    new THREE.Vector3(-120, -65, 10),
+    new THREE.Vector3(-30, -65, 10),
+
+   
+    ];
+
+    // Create line segments between each pair of points
+    for (let i = 0; i < points.length - 1; i++) {
+    const lineCurve = new THREE.LineCurve3(points[i], points[i + 1]);
+    curvePath.add(lineCurve);
+    }
+
+    // Create a visible path for reference
+    const geometry = new THREE.BufferGeometry().setFromPoints(curvePath.getPoints(50));
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const visiblePath = new THREE.Line(geometry, material);
+    scene.add(visiblePath);
+
+    //ELECTRON WIRE
+    // Create an angular path
+    const electronPath = new THREE.CurvePath();
+
+    // Define the points for our angular path
+    const electronPathPoints = [
+    new THREE.Vector3(75, 0, 10),
+    new THREE.Vector3(120, 0, 10),
+    new THREE.Vector3(120, -65, 10),
+    new THREE.Vector3(30, -65, 10),
+
+    
+    ];
+
+    // Create line segments between each pair of points
+    for (let i = 0; i < electronPathPoints.length - 1; i++) {
+    const lineCurve = new THREE.LineCurve3(electronPathPoints[i], electronPathPoints[i + 1]);
+    electronPath.add(lineCurve);
+    }
+
+    // Create a visible path for reference
+    const geometry2 = new THREE.BufferGeometry().setFromPoints(electronPath.getPoints(50));
+    const material2 = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const visiblePath2 = new THREE.Line(geometry2, material2);
+    scene.add(visiblePath2);
 
     // create cube container
     const cubeGeometry = box(cubeSize.x, cubeSize.y, cubeSize.z);
@@ -161,6 +188,20 @@ function init() {
     cube1 = new THREE.LineSegments(cubeGeometry, cubeMaterial);
     cube1.computeLineDistances();
     cube1.position.set(0, 0, 0);
+
+    //battery geometry
+    const batteryCylinderGeo =  new THREE.CylinderGeometry( 10, 10, 60, 32 );
+    const wireframe = new THREE.WireframeGeometry( batteryCylinderGeo );
+
+    const battery = new THREE.LineSegments( wireframe );
+    battery.rotateZ(Math.PI/2);
+
+    battery.material.depthTest = false;
+    battery.material.opacity = 0.25;
+    battery.material.transparent = true;
+    battery.position.set(0, -70, 0);
+
+    scene.add( battery );
 
     // create a plane in the middle to separate P type and N type
     const planeGeo = new THREE.PlaneGeometry(cubeSize.z, cubeSize.y);
@@ -175,9 +216,6 @@ function init() {
     plane.position.set(0, 0, 0);
     plane.rotateY(Math.PI/2);
 
-
-    //text
-
     scene.add(cube1, plane);
 
     let randomVelocity;
@@ -186,8 +224,9 @@ function init() {
         // change this to boltzmann distributed velocity
         randomVelocity = getBoltzVelocity();
         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, false);
+        holes.crossReady = true;
         createIon(-(cubeSize.x/2) + 1, -2, 0xffffff, 'acceptor');
-        holeSpheres.push({recombine: true, canMove: true, id:'initial', object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3), highEnergy: false});
+        holeSpheres.push({crossReady: holes.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: true, canMove: holes.canMove, id:'initial', object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
 
     //create initial electrons and donors
@@ -195,13 +234,9 @@ function init() {
         randomVelocity = getBoltzVelocity();
         createIon(2, (cubeSize.x/2) - 1, 0xffffff, 'donor');
         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
-        electronSpheres.push({recombine: true, canMove: true, id: 'initial', object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        electron.crossReady = true;
+        electronSpheres.push({crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: true, canMove: electron.canMove, id: 'initial', object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
-
-    //waits for two seconds before electrons and holes diffuse
-    setTimeout(() => {
-        shouldAnimate = true;
-    }, 4000);
 
     //generate after 10 seconds
     setTimeout(generation, 500);
@@ -211,53 +246,16 @@ function init() {
 }
 
 function update() {
-	requestAnimationFrame( update );
+	updateId = requestAnimationFrame( update );
     let currentTime = performance.now();
     let time = clock.getDelta()/15;
 
     scene.remove(innerCube);
-    let minSize = 10;
+
+    //add innercube for electric field
 
     // update inner box size based on formula using voltage
     innerBoxSize = 24.2*(0.58*(Math.sqrt(9.2 - voltage/0.05)));
-
-    // if voltage if positive then we set a minSize for the innerbox
-    if (voltage > 0) {
-        innerBoxSize = Math.max(innerBoxSize, minSize);
-    }
-
-    // ARROW IMPLEMENTATION
-    const origin = new THREE.Vector3( 0, 70, 0 );
-    const length = 50;
-    const hex = 0xffff00;
-
-    if (voltage === 0) {
-        scene.remove(arrowNegative);
-        scene.remove(arrowPositive);
-        arrowNegative = null;
-        arrowPositive = null;
-    } else if (voltage < 0) {
-        scene.remove(arrowPositive);
-        arrowPositive =  null;
-    } else if (voltage > 0) {
-        scene.remove(arrowNegative);
-        arrowNegative = null;
-    }
-    
-    if (voltage < 0) {
-        if (!arrowNegative) {
-            arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(voltage, 0, 0), origin, length, hex );
-            scene.add(arrowNegative);
-        }
-        
-    } else if (voltage > 0) {
-        if (!arrowPositive) {
-            arrowPositive = new THREE.ArrowHelper(new THREE.Vector3(voltage, 0, 0), origin, length, hex );
-            scene.add(arrowPositive);
-        }    
-    } 
-
-    // ARROW DONE
 
     innerCubeGeometry = box(innerBoxSize, cubeSize.y, cubeSize.z);
     innerCubeMaterial = new THREE.LineDashedMaterial({ color: 0xFF0000, dashSize: 3, gapSize: 1});
@@ -266,219 +264,473 @@ function update() {
     innerCube.computeLineDistances();
     
     innerCube.position.set(0, 0, 0);
-
     scene.add(innerCube);
 
-    // Recombination
-        for (let i = 0; i < numSpheres; i++) {
-            const e_sphere = electronSpheres[i];
-        
-            const h_sphere = holeSpheres[i];
-            if (electronSpheres[i].recombine == true && holeSpheres[i].recombine == true) {
+    // ARROW IMPLEMENTATION
+    const origin = new THREE.Vector3(innerBoxSize/2, 70, 0 );
+    const length = innerBoxSize;
+    const hex = 0xffff00;
 
-                if (checkCollision(e_sphere, h_sphere)) {
-                    // slow the colliding spheres down
-                    // turn it white lol
-                    // stop for like a second or so
-                    // fade out and remove from scene
-                    e_sphere.speed = 0.1;
-                    h_sphere.speed = 0.1;
-                    console.log('collision');
-
-                    const midpoint = new THREE.Vector3().addVectors(e_sphere.object.position, h_sphere.object.position).multiplyScalar(0.5);
-
-                            
-                    //orb
-                    const orbGeo = new THREE.SphereGeometry(3, 32, 32);
-                    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.1});
-                    const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
-                
-                 
-                    const direction = new THREE.Vector3().subVectors(e_sphere.object.position, h_sphere.object.position).normalize();
-                    
-                    electronSpheres[i].object.position.add(direction.clone().multiplyScalar(e_sphere.speed * time));
-                    holeSpheres[i].object.position.add(direction.clone().multiplyScalar(-h_sphere.speed * time));
-                  
-                    if (new Vector3().subVectors(electronSpheres[i].object.position, holeSpheres[i].object.position).length() <= 0) {
-                        console.log("positions are matched");
-                        orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
-                        scene.add(orbSphere);
-                        hold_still = true;
-                        setTimeout(()=> {
-                            scene.remove(orbSphere);
-                            hold_still = false;
-                        }, 1000);
-                
-                        scene.remove(electronSpheres[i].object);
-                        scene.remove(holeSpheres[i].object);
-    
-                        electronSpheres[i].object.geometry.dispose();
-                        holeSpheres[i].object.geometry.dispose();
-    
-                        electronSpheres[i].object.geometry.dispose();
-                        holeSpheres[i].object.material.dispose();
-    
-                        // electronSpheres[i].object = undefined;
-                        // holeSpheres[j].object = undefined;
-    
-                        // remove the e and h from array
-                        electronSpheres.splice(i, 1);
-                        holeSpheres.splice(i, 1);
-                        numSpheres--;
-                    }
-                }
-            }
-            
-        }
+    updateArrow(origin, length, hex);
    
-   
+    //SCATTER (update velocities for scattering)
 
-    /*
-    update the e and h velocities based on position
-    */
-    
-    for (let i = 0; i < numSpheres; i++) {
-        // implement scatter movement
-        let currElectronScatterTime = (currentTime - electronSpheres[i].scatterStartTime)/1000;
-        let currHoleScatterTime = (currentTime - holeSpheres[i].scatterStartTime)/1000;
+    scatter(currentTime); 
 
-       if (currElectronScatterTime >= electronSpheres[i].scatterTime) {
-           scatter(electronSpheres[i], i);
-       }
-       if (currHoleScatterTime >= holeSpheres[i].scatterTime) {
-            scatter(holeSpheres[i], i);
-        }
+    addAcceleration(electronSpheres, innerBoxSize, time, -1);
+    addAcceleration(holeSpheres, innerBoxSize, time, 1);
 
-        /* begin velocity calculations for each hole and each electron*/
+    recombinationAnim();
+    //check if a hole or electron needs to be supplied if they cross only if voltage level is not zero
 
-        // store x positions of e and h
-       let hole_x = holeSpheres[i].object.position.x;
-       let electron_x = electronSpheres[i].object.position.x;
-        // check hole and electron positions within the larger box and determine appropriate velocity (efield vs. no efield)
-
-        // if position is within -Xn < X < 0
-        if ((-innerBoxSize/2 < hole_x && hole_x < 0)) {
-            // check if dividing by two is appropriate or not
-            acc_hole = new THREE.Vector3(-1.53*(innerBoxSize/2 + hole_x), 0 , 0);
-        }
-
-        if ((-innerBoxSize/2 < electron_x && electron_x < 0)) {
-            acc_electron = new THREE.Vector3(-1.53*(innerBoxSize/2 + electron_x), 0 , 0);
-            // doing this because electrons will move opposite against the e-field
-        }
-
-        // is position is within 0 < X < Xn
-        if ((0 < hole_x && hole_x < innerBoxSize/2)) {
-            acc_hole = new THREE.Vector3(-1.53*(innerBoxSize/2 - hole_x), 0, 0);
-        }
-
-        if (0 < electron_x && electron_x < innerBoxSize/2) {
-            acc_electron = new THREE.Vector3(-1.53*(innerBoxSize/2 - electron_x), 0, 0);
-            // doing this because electrons will move opposite against the e-field
-        }
-
-        // everywhere else -- -cubeSize.x/2 + 1 < X < -Xn || Xn < X < cubeSize.x/2 - 1
-        if ((-cubeSize.x/2 + 1 < hole_x && hole_x < -innerBoxSize/2) || (innerBoxSize/2 < hole_x && hole_x < cubeSize.x/2 - 1) || (hole_x == 0)) {
-            acc_hole = new THREE.Vector3(0, 0, 0);
-        }
-
-        if ((-cubeSize.x/2 + 1 < electron_x && electron_x < -innerBoxSize/2) || (innerBoxSize/2 < electron_x && electron_x < cubeSize.x/2 - 1) || (electron_x == 0)) {
-            acc_electron = new THREE.Vector3(0, 0, 0);
-        }
-
-         // now that we have our acceleration calculated, let's determine the new velocities for e and h        
-       const currElectronVelocity = electronSpheres[i].velocity.clone();
-       const currHoleVelocity = holeSpheres[i].velocity.clone();
-
-       const minVelocity = 0.2;
-       const maxVelocity = 30;
-
-       // randomizes the electron speed (wrong, deleted by Azad)
-       //currElectronVelocity.multiplyScalar(electronSpheres[i].speed);
-       //currHoleVelocity.multiplyScalar(holeSpheres[i].speed);
-
-       //multiply scalar to acceleration
-       acc_electron.multiplyScalar(accScalar);
-       acc_hole.multiplyScalar(accScalar);
-
-       currElectronVelocity.add(acc_electron.multiplyScalar(time).multiplyScalar(-1));
-       currHoleVelocity.add(acc_hole.multiplyScalar(time));
-
-       currElectronVelocity.clampLength(minVelocity, maxVelocity);
-       currHoleVelocity.clampLength(minVelocity, maxVelocity);
-
-       if (!hold_still && electronSpheres[i].id == 'generated' && holeSpheres[i].id == 'generated') {
-            electronSpheres[i].canMove = true;
-            holeSpheres[i].canMove = true;
-       }
-
-       if (electronSpheres[i].id == 'generated' && holeSpheres[i].id == 'generated') {
-            let distancePostGenerated = new THREE.Vector3().subVectors(electronSpheres[i].object.position, holeSpheres[i].object.position).length();
-            if (distancePostGenerated > 3) {
-                electronSpheres[i].recombine = true;
-                holeSpheres[i].recombine = true;
-            }
-       }
-
-       if (electronSpheres[i].canMove == true) {
-        electronSpheres[i].object.position.add(currElectronVelocity);
-        electronSpheres[i].velocity = currElectronVelocity;
-
-        holeSpheres[i].object.position.add(currHoleVelocity);
-        holeSpheres[i].velocity = currHoleVelocity;   
-       }
-
-       checkBounds(holeSpheres[i], electronSpheres[i], hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
+    if (voltage > 0 || voltage < 0) {
+        sphereCrossed(electronSpheres, 'e');
+        sphereCrossed(holeSpheres, 'h');
     }
+    
+    if (positiveBatteryElements.length > 0) { //if something exists in battery
+        positive_battery_anim();
+    }
+
+    if (negativeBatteryElements.length > 0) {
+        negative_battery_anim();
+    }
+
+    //UPDATE SPHERE POSITION
+    updateSpherePosition();
+   
+    // checkBounds(holeSpheres, electronSpheres, hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
+    checkBounds(holeSpheres, electronSpheres, boxMin, boxMax);
 	renderer.render( scene, camera );
 }
 
-function generation() {
-    // let threshold = 1.5;
-    // let rand_number = Math.random() * 2;
-    // if (rand_number >= threshold) {
-        let position = new Vector3(
-            THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
-            THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
-            THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
+function negative_battery_anim() {
+    for (let i = negativeBatteryElements.length - 1; i >= 0; i--) {
+        let sphere = negativeBatteryElements[i];
+        let spherePosition = sphere.object.position;
+        if (sphere.value == 'e') {
+            if (spherePosition.x <= cubeSize.x/2) {
+                //move linear
+                sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
 
-            //orb
-            const orbGeo = new THREE.SphereGeometry(3, 32, 32);
-            const orbMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4});
-            const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
-        
-            orbSphere.position.set(position.x, position.y, position.z);
-            scene.add(orbSphere);
-            hold_still = true;
-            setTimeout(()=> {
-                scene.remove(orbSphere);
-                hold_still = false;
-            }, 1000);
+            } else {
+                //fade out and remove from scene
+                sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
 
-            let hole = createSphereAt(position.clone().add(new THREE.Vector3(1, 0, 0)), 0xFF3131, false);
-            let electron = createSphereAt(position, 0x1F51FF, false);
+                sphere.object.material.transparent = true;
 
-            let randomVelocity_h = getBoltzVelocity();
-            let randomVelocity_e = getBoltzVelocity();
-            holeSpheres.push({recombine: false, canMove: false, id: 'generated', object: hole.object, material: hole.material, velocity: randomVelocity_h, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-            electronSpheres.push({recombine: false, canMove: false, id: 'generated', object: electron.object, material: electron.material, velocity: randomVelocity_e, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-            numSpheres++;
-            ready_recombine = false;  
-            //recursively call every 10 seconds and ready to recombine after 15 seconds
+                // Update opacity based on elapsed time
+                // Calculate the distance from the electron to the edge of the system
+                let distanceFromEdge = Math.abs(sphere.object.position.x - cubeSize.x/2);
+                let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
+                let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
+                
+                sphere.object.material.opacity = opacity;
+
+                if (opacity <= 0) {
+                    // Remove the electron from the scene and battery array
+                    scene.remove(sphere.object);
+                    negativeBatteryElements.splice(i, 1);
+                }
+            }
+
+        } else if (sphere.value == 'h') {
+            if (spherePosition.x >= -cubeSize.x/2) {
+                //move linear
+                sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
+            } else {
+                //fade out and remove from scene
+                sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));
+
+                sphere.object.material.transparent = true;
+
+                // Update opacity based on elapsed time
+                // Calculate the distance from the electron to the edge of the system
+                let distanceFromEdge = Math.abs(sphere.object.position.x + cubeSize.x/2);
+                let maxDistance = 50; // Define the maximum distance at which the electron becomes fully transparent
+                let opacity = THREE.MathUtils.clamp(1 - (distanceFromEdge / maxDistance), 0, 1);
+                
+                sphere.object.material.opacity = opacity;
+
+                if (opacity <= 0) {
+                    // Remove the electron from the scene and battery array
+                    scene.remove(sphere.object);
+                    negativeBatteryElements.splice(i, 1);
+                }
+            }
+        }
+    }
+}
+
+function positive_battery_anim() {
+    for (let i = positiveBatteryElements.length - 1; i >= 0; i--) {
+        let sphere = positiveBatteryElements[i];
+        let spherePosition = sphere.object.position;
+        if (sphere.value == 'e') {
+            if (spherePosition.x < cubeSize.x/2 - 1) {
+                sphere.canMove = true;
+                sphere.crossReady = true;
+                electronSpheres.push({
+                    crossReady: sphere.crossReady,
+                    crossed: false,
+                    pause: false,
+                    lerpProgress: 0,
+                    lerping: false,
+                    lerpPartner: new THREE.Vector3(),
+                    recombine: true,
+                    id: 'generated',
+                    canMove: sphere.canMove,
+                    object: sphere.object,
+                    material: sphere.material,
+                    velocity: getBoltzVelocity(),
+                    speed: Math.random() * (maxScalar - minScalar + 1) + minScalar,
+                    scatterStartTime: performance.now(),
+                    scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
+                });
+                
+                // Remove the electron from the battery array
+                positiveBatteryElements.splice(i, 1);
+            } else {
+                sphere.object.position.add(new THREE.Vector3(-0.2, 0, 0));     
+            }
+                        
+        } else if (sphere.value == 'h') { // hole
+            if (spherePosition.x > -cubeSize.x/2 + 1) {
+                sphere.canMove = true;
+                sphere.crossReady = true;
+                holeSpheres.push({
+                    crossReady: sphere.crossReady,
+                    crossed: false,
+                    pause: false,
+                    lerpProgress: 0,
+                    lerping: false,
+                    lerpPartner: new THREE.Vector3(),
+                    recombine: true,
+                    id: 'generated',
+                    canMove: sphere.canMove,
+                    object: sphere.object,
+                    material: sphere.material,
+                    velocity: getBoltzVelocity(),
+                    speed: Math.random() * (maxScalar - minScalar + 1) + minScalar,
+                    scatterStartTime: performance.now(),
+                    scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
+                });
+                
+                // Remove the electron from the battery array
+                positiveBatteryElements.splice(i, 1);
+            } else {
+                sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
+            } 
+        }
+        }
+    
+}
+
+//keeps track of the newly created electrons/holes after a sphere crosses to the other side
+function sphereCrossed(typeArray, type) { 
+    for (let i = 0; i < typeArray.length; i++) {
+        let spherePosition = typeArray[i].object.position.x;
+        if (voltage > 0) {
+            if (type == 'e') {
+                //if electron makes it to the otherside of the box
+                //maybe second conditional isn't needed...
+                if (-cubeSize.x/2 + 1 < spherePosition && spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
+                    //create a new electron outside the box
+                    let position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
+                    let electron = createSphereAt(position, 0x1F51FF, false);
+
+                    electron.value = "e";
+                    typeArray[i].crossed = true;
+                    positiveBatteryElements.push(electron);
+                }
+            } else if (type == 'h') {
+                //confirm this
+                if ((innerBoxSize/2 < spherePosition && spherePosition < cubeSize.x/2 - 1) && !typeArray[i].crossed) {
+                    //create a new electron outside the box
+                    let position = new THREE.Vector3(-cubeSize.x/2 - 50, 0, 0);
+
+                    let hole = createSphereAt(position, 0xFF3131, false);
+
+                    hole.value = "h";
+
+                    typeArray[i].crossed = true;
+                    positiveBatteryElements.push(hole);
+                } 
+            }
+        } else if (voltage < 0) {
+            if (type == 'e') {
+                if (spherePosition < -innerBoxSize/2 && !typeArray[i].crossed && typeArray[i].crossReady) {
+                    console.log("electron crossed middle");
+                    let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
+                    let electron = createSphereAt(position, 0x1F51FF, false);
+                    electron.value = "e";
+                    typeArray[i].crossed = true;
+                    negativeBatteryElements.push(electron);
+
+                    //remove random electron from the existing electronArray
+                    let randomIndex = Math.floor(Math.random() * electronSpheres.length);
+                    scene.remove(electronSpheres[randomIndex].object);
+                    electronSpheres[randomIndex].object.geometry.dispose();
+                    electronSpheres[randomIndex].object.material.dispose();
+                    electronSpheres.splice(randomIndex, 1);
+                }
+
+            } else if (type == 'h') {
+                if (spherePosition > innerBoxSize/2 && !typeArray[i].crossed && typeArray[i].crossReady) {
+                    let position = new THREE.Vector3(-cubeSize.x/2 + 5, 0, 0);
+                    let hole = createSphereAt(position, 0xFF3131, false);
+                    hole.value = "h";
+                    typeArray[i].crossed = true;
+                    negativeBatteryElements.push(hole);
+
+                    //remove last electron from the existing electronArray
+                    let randomIndex = Math.floor(Math.random() * holeSpheres.length);
+                    scene.remove(holeSpheres[randomIndex].object);
+                    holeSpheres[randomIndex].object.geometry.dispose();
+                    holeSpheres[randomIndex].object.material.dispose();
+                    holeSpheres.splice(randomIndex, 1);
+                }
+            }
+        }
+    }
+}
+
+
+function addAcceleration(type, innerBoxSize, time, scalar) {
+    for (let i = 0; i < type.length; i++) {
+        let spherePosition = type[i].object.position.x;
+        let acc = new THREE.Vector3(0, 0, 0);
+        // if position is within -Xn < X < 0
+        if ((-innerBoxSize/2 < spherePosition && spherePosition < 0)) {
+            // check if dividing by two is appropriate or not
+            acc = new THREE.Vector3(-1.53*(innerBoxSize/2 + spherePosition), 0 , 0);
+        }
+    
+        // is position is within 0 < X < Xn
+        if ((0 < spherePosition && spherePosition < innerBoxSize/2)) {
+            acc = new THREE.Vector3(-1.53*(innerBoxSize/2 - spherePosition), 0, 0);
+        }
+    
+        // everywhere else -- -cubeSize.x/2 + 1 < X < -Xn || Xn < X < cubeSize.x/2 - 1
+        if ((-cubeSize.x/2 + 1 < spherePosition && spherePosition < -innerBoxSize/2) || (innerBoxSize/2 < spherePosition && spherePosition < cubeSize.x/2 - 1) || (spherePosition == 0)) {
+            acc = new THREE.Vector3(0, 0, 0);
+        }
+    
+        if (scalar < 0) {
+            electronSpheres[i].velocity.add(acc.multiplyScalar(time).multiplyScalar(scalar));
+        } else {
+            holeSpheres[i].velocity.add(acc.multiplyScalar(time));
+        }
+    }
+}
+
+function updateSpherePosition() {
+    const minVelocity = 0.2;
+    const maxVelocity = 30;
+    for (let sphere of [...electronSpheres, ...holeSpheres]) {
+        const currVelocity = sphere.velocity.clone();
+        currVelocity.clampLength(minVelocity, maxVelocity);
+        if (sphere.canMove == true) {
+
+           sphere.object.position.add(currVelocity);
+           sphere.velocity = currVelocity;
+        }
+    }    
+}
+
+function recombinationAnim() {
+    const lerpSpeed = 0.005; // Adjust for faster/slower lerping
+    const removalThreshold = 0.95; // When to consider spheres "recombined"
+    const pauseDuration = 60; // Number of frames to pause (adjust as needed)
+
+    // Check for collisions and initiate lerping
+    let midpoint;
+    for (let i = 0; i < electronSpheres.length; i++) {
+        for (let j = 0; j < holeSpheres.length; j++) {
+            if (!electronSpheres[i] || !holeSpheres[j]) continue;
             
-    // }
-    setTimeout(generation, 500);
+            if (checkCollision(electronSpheres[i], holeSpheres[j])) {
+                if (!electronSpheres[i].lerping && !holeSpheres[j].lerping) {
+                    console.log("Collision detected, starting pause");
+                    electronSpheres[i].lerping = true;
+                    holeSpheres[j].lerping = true;
+                    electronSpheres[i].lerpPartner = holeSpheres[j];
+                    holeSpheres[j].lerpPartner = electronSpheres[i];
+                    electronSpheres[i].pauseCounter = 0;
+                    holeSpheres[j].pauseCounter = 0;
+                    electronSpheres[i].lerpProgress = 0;
+                    holeSpheres[j].lerpProgress = 0;
+                    
+                    electronSpheres[i].object.material.color.set(new THREE.Color(0x05D9FF));
+                    holeSpheres[j].object.material.color.set(new THREE.Color(0xff9cb0));
+                    // Set velocity to zero during pause
+                    electronSpheres[i].velocity.set(0, 0, 0);
+                    holeSpheres[j].velocity.set(0, 0, 0);
+
+                    // Calculate and store midpoint for both spheres
+                    midpoint = new THREE.Vector3().addVectors(electronSpheres[i].object.position, holeSpheres[j].object.position).multiplyScalar(0.5);
+                    electronSpheres[i].targetPosition = midpoint.clone();
+                    holeSpheres[j].targetPosition = midpoint.clone();
+                }
+            }
+        }
+    }
+
+    // Handle pausing and lerping
+    for (let sphere of [...electronSpheres, ...holeSpheres]) {
+        if (sphere.lerping) {
+            if (sphere.pauseCounter < pauseDuration) {
+                // Pausing phase
+                sphere.pauseCounter++;
+            } else {
+                //when lerping, add an orb
+               
+                // Lerping phase
+                sphere.lerpProgress += lerpSpeed;
+            
+                sphere.object.position.lerp(sphere.targetPosition, sphere.lerpProgress);
+                let startingRadius = 3;
+                // Check if lerping is complete
+                
+                // alright we only want to create the orb once, so only create if an orb does not exist
+                if (sphere.lerpProgress <= .25 && !sphere.orb) { // when lerping is half way done, create an orb 
+                    const orbGeo = new THREE.SphereGeometry(startingRadius, 32, 32);
+                    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4});
+                    const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+                    orbSphere.position.copy(sphere.targetPosition);
+                    sphere.orb = orbSphere;
+                    scene.add(sphere.orb);
+                }
+                if (sphere.orb) {
+                    // Update orb position and scale
+                    sphere.orb.position.copy(sphere.targetPosition);
+                    let scale = 1 - (sphere.lerpProgress - 0.5) * 2; // Scale from 1 to 0 as lerp goes from 0.5 to 1
+                    sphere.orb.scale.setScalar(Math.max(0, scale));
+
+                    // Update opacity
+                    sphere.orb.material.opacity = 0.3 * Math.max(0, scale);  
+                    if ( sphere.orb.material.opacity == 0) {
+                        scene.remove(sphere.orb);
+                    }                 
+                }
+                //the issue with this is that it is waiting till the next frame....so I think what I need to do is
+                // remove the sphere each frame after it's made.... but then it won't exist. but it might have an illusion of it being made
+                if (sphere.lerpProgress >= removalThreshold) {
+                    removeSpherePair(sphere, sphere.lerpPartner);
+                }
+                
+            }
+        }
+    }
+}
+
+// Helper function to remove a pair of spheres
+function removeSpherePair(sphere1, sphere2) {
+    console.log("Spheres recombined, removing from scene");
+    scene.remove(sphere1.object);
+    scene.remove(sphere2.object);
+    electronSpheres = electronSpheres.filter(s => s !== sphere1 && s !== sphere2);
+    holeSpheres = holeSpheres.filter(s => s !== sphere1 && s !== sphere2);
+    
+    // Clean up THREE.js objects
+    [sphere1, sphere2].forEach(sphere => {
+        sphere.object.geometry.dispose();
+        sphere.object.material.dispose();
+    });
+}
+
+function generation() {
+    let position = new Vector3(
+        THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
+        THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
+        THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
+    // holes and electron are created at the same position
+    let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
+    let electron = createSphereAt(position, 0x1F51FF, false);
+
+
+    //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
+    const orbGeo = new THREE.SphereGeometry(1, 32, 32);
+    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
+    const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+
+    let midpoint = hole.object.position.add(electron.object.position).multiplyScalar(0.5);
+    
+    //orb set to same position as hole and electron
+    orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
+    orbSphere.gradualVal = 0.5;
+ 
+    scene.add(orbSphere);
+    let requestID;
+    let maxOrbSize = 6;
+    //push orb into array that I can access outside of this function to update the scale...
+    setTimeout(()=>{
+       let boolean = true;
+        var animateGeneration = (timestamp) => {
+            if (orbSphere.gradualVal !== undefined) {
+                if (orbSphere.gradualVal <= maxOrbSize && orbSphere.material.opacity > 0) {
+                    orbSphere.scale.setScalar(orbSphere.gradualVal);
+                    // Calculate opacity based on the current scale
+                    let opacityFactor = Math.max(0, 1 - (orbSphere.gradualVal - 1) / (maxOrbSize - 1));
+                    orbSphere.material.opacity = opacityFactor;
+                    
+                    orbSphere.gradualVal += 0.03; // Reduced speed for smoother animation
+                    let holeSpeed = new THREE.Vector3(-0.02, 0, 0);
+                    let electronSpeed =  new THREE.Vector3(0.02, 0, 0);
+                    hole.object.position.add(holeSpeed);
+                    electron.object.position.add(electronSpeed);
+                    
+                } else {
+                    scene.remove(orbSphere);
+                    hole.canMove = true;
+                    electron.canMove = true;
+                    hole.crossReady = false
+                    electron.crossReady = false;
+                    hole.recombine = false;
+                    electron.recombine = false;
+                    boolean = false;
+                    let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
+                    
+                   
+                    holeSpheres.push({crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+                    electronSpheres.push({crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
+                    
+                    if (distance >= 10) {
+                        hole.recombine = true;
+                        electron.recombine = true;
+                    }
+                    // if (hole.object.position <= 0) {
+                    //     hole.crossReady = true;
+                    // }
+                    // if (electron.object.position >= 0) {
+                    //     electron.crossReady = true;
+                    // }
+                } 
+            }
+            if (boolean == true) {
+            requestID = requestAnimationFrame(animateGeneration);
+            }
+           }
+           requestAnimationFrame(animateGeneration);   
+           cancelAnimationFrame(requestID)
+ 
+    }, 1000);
+
+
+    setTimeout(generation, 2000);
 }
 
 function checkCollision(electron, hole) {
     // collision check...
+    // if two are created from generation then they can't recombine
     let distance = new Vector3().subVectors(electron.object.position, hole.object.position).length();
-    //    let coll_dist = electronSpheres[i].object.geometry.parameters.radius + holeSpheres[i].object.geometry.parameters.radius;
-    let coll_dist = 3;
-    if (distance <= coll_dist) {
-    return true;
-    } else {
-    return false;
+    let coll_dist = 10;
+    if (electron.recombine && hole.recombine) {
+        if (distance <= coll_dist) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -491,88 +743,89 @@ function getBoltzVelocity() {
     const y = r*Math.sin(theta)*Math.sin(phi);
     const z = r*Math.cos(theta);
 
-    // const x = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
-    // const y = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
-    // const z = boltz[Math.floor(Math.random() * boltz.length)] * (Math.random() < 0.5 ? -1 : 1);
     let randomVelocity = new THREE.Vector3(x, y, z).multiplyScalar(scalar);
 
     return randomVelocity;
 }
 
 
-function scatter(sphere, index) {
-    //reset the velocity to something random
-    sphere.velocity = getBoltzVelocity();
-    // sphere.velocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+function scatter(currentTime) {
+     // implement scatter movement
+     for (let i = 0; i < electronSpheres.length; i++) {
+        for (let j = 0; j < holeSpheres.length; j++) {
+            let electronScatterTime = (currentTime - electronSpheres[i].scatterStartTime)/1000;
+            if (electronScatterTime >= electronSpheres[i].scatterTime) {
+                electronSpheres[i].velocity = getBoltzVelocity();
+                electronSpheres[i].scatterStartTime = performance.now();
+                electronSpheres[i].scatterTime = (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3);
+            }
 
-    //reset scatter start time and next scatter time
-    sphere.scatterStartTime = performance.now();
-    sphere.scatterTime = (scatterTimeMean + (perlin.noise(index * 100, index * 200, performance.now() * 0.001) - 0.5)*0.3);
-    
+            let holeScatterTime = (currentTime - holeSpheres[j].scatterStartTime)/1000;
+            if (holeScatterTime >= holeSpheres[j].scatterTime) {
+                holeSpheres[j].velocity = getBoltzVelocity();
+                holeSpheres[j].scatterStartTime = performance.now();
+                holeSpheres[j].scatterTime = (scatterTimeMean + (perlin.noise(j * 100, j * 200, performance.now() * 0.001) - 0.5)*0.3);
+            }
+        }
+     }     
 }
 
-function checkBounds(sphere1, sphere2, minX1, maxX1, minX2, maxX2) {
-    // cube boundaries y and z
+function checkBounds(sphere1, sphere2, min, max) {
+    // cube boundaries y and z for (let i = 0; i < )
     let yedge = (cubeSize.y/2);
     let ynedge = -(yedge);
     let zedge = (cubeSize.z/2);
     let znedge = -(zedge);
-    let tempMaxX1 = -4;
-    let tempMinX2 = 4;
-    if (shouldAnimate) {
-        maxX1 = maxX1;
-        minX2 = minX2;
-    } else {
-        maxX1 = tempMaxX1;
-        minX2 = tempMinX2;
-    }
-    if (sphere1.object.position.x >= maxX1) {
-        sphere1.object.position.x = minX1 + 1;
-        // sphere1.velocity.multiplyScalar(-1);
-    } else if(sphere1.object.position.x <= minX1){
-        sphere1.object.position.x = THREE.MathUtils.randFloat(minX1 + 1, minX1 + 20);
-        // sphere1.object.position.x = minX1 + 1;
-        // sphere1.velocity.multiplyScalar(-1);
+
+    for (let i = 0; i < sphere1.length; i++) {
+        if (sphere1[i].object.position.x >= max) {
+            sphere1[i].object.position.x = min + 1;
+            // sphere1.velocity.multiplyScalar(-1);
+        } else if(sphere1[i].object.position.x <= min){
+            sphere1[i].object.position.x = THREE.MathUtils.randFloat(min + 1, min + 20);
+            // sphere1.object.position.x = minX1 + 1;
+            // sphere1.velocity.multiplyScalar(-1);
+        }
+        if (sphere1[i].object.position.y > yedge) {
+            sphere1[i].object.position.y = yedge - 1;
+            sphere1[i].velocity.multiplyScalar(-1);
+        } else if (sphere1[i].object.position.y < ynedge) {
+            sphere1[i].object.position.y = ynedge + 1;
+            sphere1[i].velocity.multiplyScalar(-1);
+        }
+        if (sphere1[i].object.position.z > zedge) {
+            sphere1[i].object.position.z = zedge - 1;
+            sphere1[i].velocity.multiplyScalar(-1);
+        } else if (sphere1[i].object.position.z < znedge) {
+            sphere1[i].object.position.z = znedge + 1;
+            sphere1[i].velocity.multiplyScalar(-1);
+        }
     }
 
-    if (sphere2.object.position.x >= maxX2) {
-        sphere2.object.position.x = THREE.MathUtils.randFloat(maxX2 - 15 , maxX2 - 1);
-        // sphere2.velocity.multiplyScalar(-1);
-    } else if(sphere2.object.position.x <= minX2){
-        sphere2.object.position.x = maxX2 - 1;
-        // sphere2.velocity.multiplyScalar(-1);
-    }
-
-    if (sphere1.object.position.y > yedge) {
-        sphere1.object.position.y = yedge - 1;
-        sphere1.velocity.multiplyScalar(-1);
-    } else if (sphere1.object.position.y < ynedge) {
-        sphere1.object.position.y = ynedge + 1;
-        sphere1.velocity.multiplyScalar(-1);
-    }
-
-    if (sphere2.object.position.y > yedge) {
-        sphere2.object.position.y = yedge - 1;
-        sphere2.velocity.multiplyScalar(-1);
-    } else if (sphere2.object.position.y < ynedge) {
-        sphere2.object.position.y = ynedge + 1;
-        sphere2.velocity.multiplyScalar(-1);
-    }
-
-    if (sphere1.object.position.z > zedge) {
-        sphere1.object.position.z = zedge - 1;
-        sphere1.velocity.multiplyScalar(-1);
-    } else if (sphere1.object.position.z < znedge) {
-        sphere1.object.position.z = znedge + 1;
-        sphere1.velocity.multiplyScalar(-1);
-    }
-
-    if (sphere2.object.position.z > zedge) {
-        sphere2.object.position.z = zedge - 1;
-        sphere2.velocity.multiplyScalar(-1);
-    } else if (sphere2.object.position.z < znedge) {
-        sphere2.object.position.z = znedge + 1;
-        sphere2.velocity.multiplyScalar(-1);
+    for (let i = 0; i < sphere2.length; i++) {
+        if (sphere2[i].object.position.x >= max) {
+            sphere2[i].object.position.x = THREE.MathUtils.randFloat(max - 15 , max - 1);
+            // sphere2.velocity.multiplyScalar(-1);
+        } else if(sphere2[i].object.position.x <= min){
+            sphere2[i].object.position.x = max - 1;
+            // sphere2.velocity.multiplyScalar(-1);
+        }
+    
+        if (sphere2[i].object.position.y > yedge) {
+            sphere2[i].object.position.y = yedge - 1;
+            sphere2[i].velocity.multiplyScalar(-1);
+        } else if (sphere2[i].object.position.y < ynedge) {
+            sphere2[i].object.position.y = ynedge + 1;
+            sphere2[i].velocity.multiplyScalar(-1);
+        }
+    
+        if (sphere2[i].object.position.z > zedge) {
+            sphere2[i].object.position.z = zedge - 1;
+            sphere2[i].velocity.multiplyScalar(-1);
+        } else if (sphere2[i].object.position.z < znedge) {
+            sphere2[i].object.position.z = znedge + 1;
+            sphere2[i].velocity.multiplyScalar(-1);
+        }
     }
 }
 
@@ -622,8 +875,15 @@ function createSphere(i, minPos, maxPos, sphereColor, transparency) {
     if (transparency) {
         opacityVal = 0.6;
     }
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal});
+    let geometry;
+    let material;
+    geometry = new THREE.SphereGeometry(1, 32, 32);
+
+    if (sphereColor === 0xFF3131) {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, wireframe: true}); 
+    } else {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal}); 
+    }
     const sphere = new THREE.Mesh(geometry, material);
 
     // Random position within the cube as specified
@@ -633,22 +893,45 @@ function createSphere(i, minPos, maxPos, sphereColor, transparency) {
     THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1)
     );
     scene.add(sphere);
-    return {object: sphere, material: material};
+    return {object: sphere, material: material, canMove: true};
 }
 
 function createSphereAt(position, sphereColor, transparency) {
     let opacityVal = null;
+    let geometry;
+    let material;
     if (transparency) {
         opacityVal = 0.6;
     }
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal});
+    geometry = new THREE.SphereGeometry(1, 32, 32);
+
+    if (sphereColor === 0xFF3131) {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, wireframe: true}); 
+    } else {
+        material = new THREE.MeshBasicMaterial({ color: sphereColor, transparent: transparency, opacity: opacityVal}); 
+    }
     const sphere = new THREE.Mesh(geometry, material);
 
     // Random position within the cube as specified
     sphere.position.set(position.x, position.y, position.z);
     scene.add(sphere);
-    return {object: sphere, material: material};
+    return {object: sphere, material: material, canMove: false};
+}
+
+function updateArrow(origin, length, hex) {
+    if (voltage === 0) {
+        scene.remove(arrowNegative);
+        arrowNegative = null;
+    } 
+    if (voltage < 0 || voltage > 0) {
+        if (!arrowNegative) {
+            voltage = Math.abs(voltage);
+            arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-voltage, 0, 0), origin, length, hex );
+            scene.add(arrowNegative);
+        } else {
+            arrowNegative.setLength(length); // Update arrow length as the innerBoxSize changes
+        }
+    } 
 }
 
 function box( width, height, depth ) {
@@ -706,10 +989,10 @@ function box( width, height, depth ) {
 
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
-
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize(container.clientWidth, container.clientHeight, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 }
 
 
