@@ -651,7 +651,23 @@ function generation() {
     let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
     let electron = createSphereAt(position, 0x1F51FF, false);
 
-
+    let randomIndex = 0;
+    // if generates on the electron side remove from the hole side
+    // if generates on hole side remove from the electron side to maintain balance in quantity of spheres
+    if (position.x < cubeSize.x/2 && position.x > innerBoxSize.x) {
+        randomIndex = Math.floor(Math.random() * holeSpheres.length);
+        scene.remove(holeSpheres[randomIndex].object);
+        holeSpheres[randomIndex].object.geometry.dispose();
+        holeSpheres[randomIndex].object.material.dispose();
+        holeSpheres.splice(randomIndex, 1);
+    } else if (position.x > -cubeSize.x/2 && position.x < -innerBoxSize.x) {
+        randomIndex = Math.floor(Math.random() * electronSpheres.length);
+        scene.remove(electronSpheres[randomIndex].object);
+        electronSpheres[randomIndex].object.geometry.dispose();
+        electronSpheres[randomIndex].object.material.dispose();
+        electronSpheres.splice(randomIndex, 1);
+    }
+   
     //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
     const orbGeo = new THREE.SphereGeometry(1, 32, 32);
     const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
@@ -692,21 +708,10 @@ function generation() {
                     hole.recombine = false;
                     electron.recombine = false;
                     boolean = false;
-<<<<<<< HEAD
-                
-                    //where should I check for the distance to change recombine to true?
-=======
->>>>>>> a1da7698faf44d2f8ce4e80e9524fb6f2a6a06bc
-                   
-                   
+                              
                     holeSpheres.push({initPos: hole.object.position.clone(), crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
                     electronSpheres.push({initPos: electron.object.position.clone(), crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
-                    
-<<<<<<< HEAD
-                
-=======
-                  
->>>>>>> a1da7698faf44d2f8ce4e80e9524fb6f2a6a06bc
+        
                     // if (hole.object.position <= 0) {
                     //     hole.crossReady = true;
                     // }
