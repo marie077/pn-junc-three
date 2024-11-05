@@ -10,6 +10,7 @@ let updateId;
 let voltageLevel;
 let cameraControls;
 let gui;
+const voltageControl = document.getElementById('voltage');
 let minScalar = 0.22;
 let maxScalar = 0.88;
 
@@ -121,9 +122,13 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
-        voltage = voltageLevel.x;
-    });
+    // gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
+    //     voltage = voltageLevel.x;
+    // });
+    voltageControl.addEventListener('input', () => {
+        const voltageLevel = parseFloat(voltageControl.value);
+        voltage = voltageLevel;
+     });
 
 
 
