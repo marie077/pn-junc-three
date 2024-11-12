@@ -77,7 +77,7 @@ function init() {
         }
     }
     
-    container = document.getElementById('three-container');
+    container = document.getElementById('three-container-scene-1');
     //scene
     scene = new THREE.Scene();
     //camera
