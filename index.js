@@ -10,6 +10,7 @@ let updateId;
 let voltageLevel;
 let cameraControls;
 let gui;
+const voltageControl = document.getElementById('voltage');
 let minScalar = 0.22;
 let maxScalar = 0.88;
 
@@ -121,9 +122,13 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
-        voltage = voltageLevel.x;
-    });
+    // gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
+    //     voltage = voltageLevel.x;
+    // });
+    voltageControl.addEventListener('input', () => {
+        const voltageLevel = parseFloat(voltageControl.value);
+        voltage = voltageLevel;
+     });
 
 
 
@@ -673,82 +678,93 @@ function removeSpherePair(sphere1, sphere2) {
 }
 
 function generation() {
-    
-   
-        let position = new Vector3(
-            THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
-            THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
-            THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
-        // holes and electron are created at the same position
-        let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
-        let electron = createSphereAt(position, 0x1F51FF, false);
+    let position = new Vector3(
+        THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
+        THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
+        THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
+    // holes and electron are created at the same position
+    let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
+    let electron = createSphereAt(position, 0x1F51FF, false);
 
+    let randomIndex = 0;
+    if (position.x < cubeSize.x/2 && position.x > innerBoxSize/2) {
+        randomIndex = Math.floor(Math.random() * holeSpheres.length);
+        scene.remove(holeSpheres[randomIndex].object);
+        holeSpheres[randomIndex].object.geometry.dispose();
+        holeSpheres[randomIndex].object.material.dispose();
+        holeSpheres.splice(randomIndex, 1);
+    } else if (position.x > -cubeSize.x/2 && position.x < -innerBoxSize/2) {
+        randomIndex = Math.floor(Math.random() * electronSpheres.length);
+        scene.remove(electronSpheres[randomIndex].object);
+        electronSpheres[randomIndex].object.geometry.dispose();
+        electronSpheres[randomIndex].object.material.dispose();
+        electronSpheres.splice(randomIndex, 1);
+    }
+    //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
+    const orbGeo = new THREE.SphereGeometry(1, 32, 32);
+    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
+    const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
 
-        //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
-        const orbGeo = new THREE.SphereGeometry(1, 32, 32);
-        const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
-        const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+    let midpoint = hole.object.position.add(electron.object.position).multiplyScalar(0.5);
 
-        let midpoint = hole.object.position.add(electron.object.position).multiplyScalar(0.5);
-        
-        //orb set to same position as hole and electron
-        orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
-        orbSphere.gradualVal = 0.5;
-    
-        scene.add(orbSphere);
-        let requestID;
-        let maxOrbSize = 6;
-        //push orb into array that I can access outside of this function to update the scale...
-        setTimeout(()=>{
-        let boolean = true;
-            var animateGeneration = (timestamp) => {
-                if (orbSphere.gradualVal !== undefined) {
-                    if (orbSphere.gradualVal <= maxOrbSize && orbSphere.material.opacity > 0) {
-                        orbSphere.scale.setScalar(orbSphere.gradualVal);
-                        // Calculate opacity based on the current scale
-                        let opacityFactor = Math.max(0, 1 - (orbSphere.gradualVal - 1) / (maxOrbSize - 1));
-                        orbSphere.material.opacity = opacityFactor;
-                        
-                        orbSphere.gradualVal += 0.03; // Reduced speed for smoother animation
-                        let holeSpeed = new THREE.Vector3(-0.02, 0, 0);
-                        let electronSpeed =  new THREE.Vector3(0.02, 0, 0);
-                        hole.object.position.add(holeSpeed);
-                        electron.object.position.add(electronSpeed);
-                        
-                    } else {
-                        scene.remove(orbSphere);
-                        hole.canMove = true;
-                        electron.canMove = true;
-                        hole.crossReady = false;
-                        electron.crossReady = false;
-                        hole.recombine = false;
-                        electron.recombine = false;
-                        boolean = false;
+    //orb set to same position as hole and electron
+    orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
+    orbSphere.gradualVal = 0.5;
+
+    scene.add(orbSphere);
+    let requestID;
+    let maxOrbSize = 6;
+    //push orb into array that I can access outside of this function to update the scale...
+    setTimeout(()=>{
+    let boolean = true;
+        var animateGeneration = (timestamp) => {
+            if (orbSphere.gradualVal !== undefined) {
+                if (orbSphere.gradualVal <= maxOrbSize && orbSphere.material.opacity > 0) {
+                    orbSphere.scale.setScalar(orbSphere.gradualVal);
+                    // Calculate opacity based on the current scale
+                    let opacityFactor = Math.max(0, 1 - (orbSphere.gradualVal - 1) / (maxOrbSize - 1));
+                    orbSphere.material.opacity = opacityFactor;
                     
+                    orbSphere.gradualVal += 0.03; // Reduced speed for smoother animation
+                    let holeSpeed = new THREE.Vector3(-0.02, 0, 0);
+                    let electronSpeed =  new THREE.Vector3(0.02, 0, 0);
+                    hole.object.position.add(holeSpeed);
+                    electron.object.position.add(electronSpeed);
                     
-                        holeSpheres.push({initPos: hole.object.position.clone(), crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-                        electronSpheres.push({initPos: electron.object.position.clone(), crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
-                        
+                } else {
+                    scene.remove(orbSphere);
+                    hole.canMove = true;
+                    electron.canMove = true;
+                    hole.crossReady = false;
+                    electron.crossReady = false;
+                    hole.recombine = false;
+                    electron.recombine = false;
+                    boolean = false;
+                
+                
+                    holeSpheres.push({initPos: hole.object.position.clone(), crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+                    electronSpheres.push({initPos: electron.object.position.clone(), crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
                     
-                        // if (hole.object.position <= 0) {
-                        //     hole.crossReady = true;
-                        // }
-                        // if (electron.object.position >= 0) {
-                        //     electron.crossReady = true;
-                        // }
-                    } 
-                }
-                if (boolean == true) {
-                requestID = requestAnimationFrame(animateGeneration);
-                }
+                
+                    // if (hole.object.position <= 0) {
+                    //     hole.crossReady = true;
+                    // }
+                    // if (electron.object.position >= 0) {
+                    //     electron.crossReady = true;
+                    // }
+                } 
             }
-            requestAnimationFrame(animateGeneration);   
-            cancelAnimationFrame(requestID)
-    
-        }, 1000);
+            if (boolean == true) {
+            requestID = requestAnimationFrame(animateGeneration);
+            }
+        }
+        requestAnimationFrame(animateGeneration);   
+        cancelAnimationFrame(requestID)
 
-        setTimeout(generation, 2000);
-    
+    }, 1000);
+
+    setTimeout(generation, 2000);
+
 
 }
 
