@@ -313,9 +313,15 @@ function update() {
     innerCube.position.set(0, 0, 0);
     scene.add(innerCube);
 
+    let origin_x;
     // ARROW IMPLEMENTATION
-    const origin = new THREE.Vector3(innerBoxSize/2, 70, 0 );
-    const length = innerBoxSize;
+    if (voltage > 0) {
+        origin_x = innerBoxSize/2;
+    } else if (voltage < 0) {
+        origin_x = innerBoxSize/2 + 30;
+    }
+    const origin = new THREE.Vector3(origin_x, 70, 0 );
+    const length = innerBoxSize + 20;
     const hex = 0xffff00;
 
     updateArrow(origin, length, hex);
@@ -1116,6 +1122,7 @@ function createSphereAt(position, sphereColor, transparency) {
 }
 
 function updateArrow(origin, length, hex) {
+    let headLength = 10;
     if (voltage === 0) {
         scene.remove(arrowNegative);
         arrowNegative = null;
@@ -1123,10 +1130,10 @@ function updateArrow(origin, length, hex) {
     if (voltage < 0 || voltage > 0) {
         if (!arrowNegative) {
             voltage = Math.abs(voltage);
-            arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-voltage, 0, 0), origin, length, hex );
+            arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-voltage, 0, 0), origin, length, hex, headLength);
             scene.add(arrowNegative);
         } else {
-            arrowNegative.setLength(length); // Update arrow length as the innerBoxSize changes
+            arrowNegative.setLength(length, headLength); // Update arrow length as the innerBoxSize changes
         }
     } 
 }

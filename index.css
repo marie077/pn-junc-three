@@ -17,7 +17,20 @@ body {
 	background-color: #fff;
   }
 
+  .range-input-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
 
+  input[type="range"] {
+    width: 100%;
+  }
+
+  .range-value-label {
+    color: #ffffff;
+    font-size: 1rem;
+  }
 
 /* #three-container {
 	width: 100%;
