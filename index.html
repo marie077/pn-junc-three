@@ -17,7 +17,7 @@
 		  </script>
 	</head>
 	
-	<body id="body_parent" class="noselect" onload="StartScroll()">
+	<body id="body_parent" class="noselect">
 		<div class="container">
 			<div class="row title-row">
 				<h1 class="col-lg-12"> PN-Junction: 3D visualization </h1>
@@ -30,8 +30,12 @@
 				<div class="col-lg-4"> 
 					<h1> Intro to PN-Junction </h1>
 					<p> Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </p>	
+					<label style ="color:white; padding: 3em" for="voltage">Voltage Level:</label>
+					<input type="range" id="voltage" min="-1.4" max="0.4" step="0.01" value="0.0">
+					<div class="sliderticks">
 				</div>
 			</div>
+
 		</div>
 		<!-- <div id="info">
 			<div id="ptype">
@@ -47,7 +51,7 @@
 				-
 			</div>
 		</div> -->
-		<script src="./scroll.js"></script>
+		<script src="./solarcell.js"></script>
 		<script type="module" src="index.js"></script>
 		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
 	</body>
