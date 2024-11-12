@@ -904,7 +904,7 @@ function solarCellGeneration() {
     
         }, 1000);
     
-        setTimeout(solarCellGeneration, 1000);
+        setTimeout(solarCellGeneration, 500);
 }
 
 function updateRecombinationStatus() {
