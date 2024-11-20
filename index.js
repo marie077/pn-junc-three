@@ -19,20 +19,23 @@ let maxScalar = 0.88;
 let cube1;
 let orbitControls 
 
-//Solar Cell Variables
-let solarCell;
-let trapezoid_top = 20;
-let trapezoid_bottom = 60;
-let solarCellActivated = true;
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
-let numSpheres = 50;
+let numSpheres = 5;
 
 let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
 let maxElectrons = 75;
 let maxHoles = 75;
+
+
+//Solar Cell Variables
+let solarCell;
+let trapezoid_top = 20;
+let trapezoid_bottom = 60;
+let trapezoid_height = cubeSize.y;
+let solarCellActivated = true;
 
 
 let boxMin = -(cubeSize.x/2) + 1;
@@ -155,28 +158,28 @@ function init() {
     // window resize handler
     window.addEventListener( 'resize', onWindowResize);
 
-    //transform controls
-    let control = new TransformControls( camera, renderer.domElement );
-    // Create orbit controls for camera navigation
-    orbitControls = new OrbitControls(camera, renderer.domElement);
-    // solar cell init
+    // //transform controls
+    // let control = new TransformControls( camera, renderer.domElement );
+    // // Create orbit controls for camera navigation
+    // orbitControls = new OrbitControls(camera, renderer.domElement);
+    // // solar cell init
   
-    const solarCellGeo = createTrapezoidGeometry(trapezoid_top, trapezoid_bottom, cubeSize.y, cubeSize.z);
-    const solarMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFF00, transparent: true, opacity: 0.4} ); 
-    solarCell = new THREE.Mesh( solarCellGeo, solarMaterial ); 
-    solarCell.position.set(0, -20, 0);
-    scene.add(solarCell);
+    // const solarCellGeo = createTrapezoidGeometry(trapezoid_top, trapezoid_bottom, trapezoid_height, cubeSize.z);
+    // const solarMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFF00, transparent: true, opacity: 0.4} ); 
+    // solarCell = new THREE.Mesh( solarCellGeo, solarMaterial ); 
+    // solarCell.position.set(0, -30, 0);
+    // scene.add(solarCell);
     
-    control.attach( solarCell );
-    scene.add(control);
+    // control.attach( solarCell );
+    // scene.add(control);
 
-    // Set the transform mode to 'translate'
-    control.setMode('translate');
+    // // Set the transform mode to 'translate'
+    // control.setMode('translate');
 
-    // Add event listeners for transform control events
-    control.addEventListener('dragging-changed', (event) => {
-    orbitControls.enabled = !event.value;
-    });
+    // // Add event listeners for transform control events
+    // control.addEventListener('dragging-changed', (event) => {
+    // orbitControls.enabled = !event.value;
+    // });
 
     // Create an angular path
     const curvePath = new THREE.CurvePath();
@@ -217,13 +220,13 @@ function init() {
     
     ];
 
-    // Create line segments between each pair of points
+    // Create line segments between each angular path points
     for (let i = 0; i < electronPathPoints.length - 1; i++) {
     const lineCurve = new THREE.LineCurve3(electronPathPoints[i], electronPathPoints[i + 1]);
     electronPath.add(lineCurve);
     }
 
-    // Create a visible path for reference
+    // Create a visible path
     const geometry2 = new THREE.BufferGeometry().setFromPoints(electronPath.getPoints(50));
     const material2 = new THREE.LineBasicMaterial({ color: 0xffffff });
     const visiblePath2 = new THREE.Line(geometry2, material2);
@@ -271,9 +274,26 @@ function init() {
         // change this to boltzmann distributed velocity
         randomVelocity = getBoltzVelocity();
         let holes = createSphere(i, -(cubeSize.x/2) + 1, -2, 0xFF3131, false);
-        holes.crossReady = true;
         createIon(-(cubeSize.x/2) + 1, -2, 0xffffff, 'acceptor');
-        holeSpheres.push({crossReady: holes.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: true, canMove: holes.canMove, id:'initial', object: holes.object, material: holes.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        holeSpheres.push({
+            value: "h",
+            initPos: holes.object.position,
+            crossReady: true, 
+            crossed: false, 
+            pause: false,
+            lerpProgress: 0, 
+            lerping: false, 
+            lerpPartner: new THREE.Vector3(), 
+            recombine: true,
+            canMove: true, 
+            id:"normal",
+            object: holes.object, 
+            material: holes.material, 
+            velocity: randomVelocity, 
+            speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, 
+            scatterStartTime: performance.now(),
+            scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)
+        });
     }
 
     //create initial electrons and donors
@@ -281,12 +301,28 @@ function init() {
         randomVelocity = getBoltzVelocity();
         createIon(2, (cubeSize.x/2) - 1, 0xffffff, 'donor');
         let electron = createSphere(i, 2, (cubeSize.x/2) - 1, 0x1F51FF, false);
-        electron.crossReady = true;
-        electronSpheres.push({crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), recombine: true, canMove: electron.canMove, id: 'initial', object: electron.object, material: electron.material, velocity: randomVelocity, speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        electronSpheres.push({
+            value: "e", 
+            initPos: electron.object.position,
+            crossReady: true,
+            crossed: false,
+            pause: false,
+            lerpProgress: 0, 
+            lerping: false, 
+            lerpPartner: new THREE.Vector3(), 
+            recombine: true, 
+            canMove: true, 
+            id: "normal", 
+            object: electron.object, 
+            material: electron.material, 
+            velocity: randomVelocity, 
+            speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, 
+            scatterStartTime: performance.now(), 
+            scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
-    if (solarCellActivated) {
-        setTimeout(solarCellGeneration, 500);
-    }
+    // if (solarCellActivated) {
+    //     setTimeout(solarCellGeneration, 500);
+    // }
     setTimeout(generation, 500);
 }
 
@@ -296,8 +332,8 @@ function update() {
     let time = clock.getDelta()/15;
     scene.remove(innerCube);
 
-    console.log("electron #:" + electronSpheres.length);
-    console.log("hole #:" + holeSpheres.length);
+    // console.log("electron #:" + electronSpheres.length);
+    // console.log("hole #:" + holeSpheres.length);
 
     //add innercube for electric field
 
@@ -341,12 +377,11 @@ function update() {
     if (voltage < 0) {
         sphereCrossed(electronSpheres, 'e');
         sphereCrossed(holeSpheres, 'h');
+        // checkGeneratedStatus();
     }
 
     if (voltage > 0) {
-        console.log(recombinationOccured);;
         if (recombinationOccured) {
-            console.log("batt anim pos");
             let e_position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
             let electron = createSphereAt(e_position, 0x1F51FF, false);
 
@@ -376,9 +411,62 @@ function update() {
    
     // checkBounds(holeSpheres, electronSpheres, hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
     checkBounds(holeSpheres, electronSpheres, boxMin, boxMax);
-    orbitControls.update();
+    // orbitControls.update();
 	renderer.render( scene, camera );
 }
+
+// function checkGeneratedStatus() {
+//     for (let sphere of [...electronSpheres, ...holeSpheres]) {
+//         if (sphere.id == "generated") {
+//             if (sphere.initPos != undefined) {
+
+//                 if (sphere.value == 'e') {
+//                     //electron initial position is within the center of the pn junction (where it generated at)
+//                     if (sphere.initPos.x < innerBoxSize/2 && sphere.initPos.x > -innerBoxSize/2) {
+//                         //current electron position moves towards its home side then electron exits the battery
+//                         if (sphere.object.position.x < cubeSize.x/2 && sphere.object.position.x > innerBoxSize/2 && !sphere.crossed) {
+//                             let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
+//                             let electron = createSphereAt(position, 0x1F51FF, false);
+//                             electron.value = "e";
+//                             sphere.id = "normal";
+//                             sphere.crossed = true;
+//                             negativeBatteryElements.push(electron);
+        
+    
+//                             let randomIndex = Math.floor(Math.random() * electronSpheres.length);
+//                             scene.remove(electronSpheres[randomIndex].object);
+//                             electronSpheres[randomIndex].object.geometry.dispose();
+//                             electronSpheres[randomIndex].object.material.dispose();
+//                             electronSpheres.splice(randomIndex, 1);
+
+//                         }
+//                     }
+//                 } else if (sphere.value == "h") {
+//                     if (sphere.initPos.x < innerBoxSize/2 && sphere.initPos.x > -innerBoxSize/2) {
+//                         if (sphere.object.position.x < -innerBoxSize/2 && sphere.object.position.x > -cubeSize.x/2 && !sphere.crossed) {
+//                             let position = new THREE.Vector3(-cubeSize.x/2 + 5, 0, 0);
+//                             let hole = createSphereAt(position, 0xFF3131, false);
+//                             hole.value = "h";
+//                             sphere.crossed = true;
+//                             sphere.id = "normal";
+//                             negativeBatteryElements.push(hole);
+        
+//                             //remove last electron from the existing electronArray
+//                             let randomIndex = Math.floor(Math.random() * holeSpheres.length);
+//                             scene.remove(holeSpheres[randomIndex].object);
+//                             holeSpheres[randomIndex].object.geometry.dispose();
+//                             holeSpheres[randomIndex].object.material.dispose();
+//                             holeSpheres.splice(randomIndex, 1);
+
+//                         }
+                        
+//                     }
+//                 }
+//             }   
+
+//         }
+//     }
+// }
 
 function negative_battery_anim() {
     for (let i = negativeBatteryElements.length - 1; i >= 0; i--) {
@@ -444,18 +532,17 @@ function positive_battery_anim() {
         let spherePosition = sphere.object.position;
         if (sphere.value == 'e') {
             if (spherePosition.x < cubeSize.x/2 - 1) {
-                sphere.canMove = true;
-                sphere.crossReady = true;
                 electronSpheres.push({
-                    crossReady: sphere.crossReady,
+                    value: "h",
+                    crossReady: true,
                     crossed: false,
                     pause: false,
                     lerpProgress: 0,
                     lerping: false,
                     lerpPartner: new THREE.Vector3(),
                     recombine: true,
-                    id: 'generated',
-                    canMove: sphere.canMove,
+                    id: "generated",
+                    canMove: true,
                     object: sphere.object,
                     material: sphere.material,
                     velocity: getBoltzVelocity(),
@@ -472,10 +559,9 @@ function positive_battery_anim() {
                         
         } else if (sphere.value == 'h') { // hole
             if (spherePosition.x > -cubeSize.x/2 + 1) {
-                sphere.canMove = true;
-                sphere.crossReady = true;
                 holeSpheres.push({
-                    crossReady: sphere.crossReady,
+                    value: "h",
+                    crossReady: true,
                     crossed: false,
                     pause: false,
                     lerpProgress: 0,
@@ -483,7 +569,7 @@ function positive_battery_anim() {
                     lerpPartner: new THREE.Vector3(),
                     recombine: true,
                     id: 'generated',
-                    canMove: sphere.canMove,
+                    canMove: true,
                     object: sphere.object,
                     material: sphere.material,
                     velocity: getBoltzVelocity(),
@@ -498,7 +584,7 @@ function positive_battery_anim() {
                 sphere.object.position.add(new THREE.Vector3(0.2, 0, 0));
             } 
         }
-        }
+    }
     
 }
 
@@ -506,41 +592,13 @@ function positive_battery_anim() {
 function sphereCrossed(typeArray, type) { 
     for (let i = 0; i < typeArray.length; i++) {
         let spherePosition = typeArray[i].object.position.x;
-        // if (voltage > 0) {
-        //     if (type == 'e') {
-        //         //if electron makes it to the otherside of the box
-        //         //maybe second conditional isn't needed...
-        //         if (-cubeSize.x/2 + 1 < spherePosition && spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
-        //             //create a new electron outside the box
-        //             let position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
-        //             let electron = createSphereAt(position, 0x1F51FF, false);
-
-        //             electron.value = "e";
-        //             typeArray[i].crossed = true;
-        //             positiveBatteryElements.push(electron);
-        //         }
-        //     } else if (type == 'h') {
-        //         //confirm this
-        //         if ((innerBoxSize/2 < spherePosition && spherePosition < cubeSize.x/2 - 1) && !typeArray[i].crossed) {
-        //             //create a new electron outside the box
-        //             let position = new THREE.Vector3(-cubeSize.x/2 - 50, 0, 0);
-
-        //             let hole = createSphereAt(position, 0xFF3131, false);
-
-        //             hole.value = "h";
-
-        //             typeArray[i].crossed = true;
-        //             positiveBatteryElements.push(hole);
-        //         } 
-        //     }
-        // } else 
         if (voltage < 0) {
             if (type == 'e') {
                 if (spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
-                    console.log("electron crossed middle");
                     let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
                     let electron = createSphereAt(position, 0x1F51FF, false);
-
+                    // In sphereCrossed
+                   
                     electron.value = "e";
 
                     typeArray[i].crossed = true;
@@ -635,7 +693,6 @@ function recombinationAnim() {
                
                 if (checkCollision(electronSpheres[i], holeSpheres[j])) {
                     if (!electronSpheres[i].lerping && !holeSpheres[j].lerping) {
-                        console.log("Collision detected, starting pause");
                         electronSpheres[i].lerping = true;
                         holeSpheres[j].lerping = true;
                         electronSpheres[i].lerpPartner = holeSpheres[j];
@@ -665,7 +722,12 @@ function recombinationAnim() {
 
     // Handle pausing and lerping
     for (let sphere of [...electronSpheres, ...holeSpheres]) {
-        if (sphere.lerping) {
+        sphere.processed = false;
+        if (sphere.lerping && !sphere.processed) {
+            sphere.processed = true; 
+            console.log("lerping detected");
+            sphere.orbCreated = false;
+
             if (sphere.pauseCounter < pauseDuration) {
                 // Pausing phase
                 sphere.pauseCounter++;
@@ -680,15 +742,18 @@ function recombinationAnim() {
                 // Check if lerping is complete
                 
                 // alright we only want to create the orb once, so only create if an orb does not exist
-                if (sphere.lerpProgress <= .25 && !sphere.orb) { // when lerping is half way done, create an orb 
+                if (sphere.lerpProgress <= .25 && !sphere.orb && !sphere.orbCreated) { // when lerping is 25% done, create an orb 
                     const orbGeo = new THREE.SphereGeometry(startingRadius, 32, 32);
                     const orbMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4});
                     const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
                     orbSphere.position.copy(sphere.targetPosition);
                     sphere.orb = orbSphere;
+                    sphere.orbCreated = true;
+                    console.log("orb added to screen");
                     scene.add(sphere.orb);
                 }
                 if (sphere.orb) {
+                    console.log("orb exists");
                     // Update orb position and scale
                     sphere.orb.position.copy(sphere.targetPosition);
                     let scale = 1 - (sphere.lerpProgress - 0.5) * 2; // Scale from 1 to 0 as lerp goes from 0.5 to 1
@@ -696,9 +761,18 @@ function recombinationAnim() {
 
                     // Update opacity
                     sphere.orb.material.opacity = 0.3 * Math.max(0, scale);  
-                    if ( sphere.orb.material.opacity == 0) {
+                    // console.log("orb opacity value:", sphere.orb.material.opacity );
+                    if ( sphere.orb.material.opacity <= 0.04) {
                         scene.remove(sphere.orb);
-                    }                 
+                        sphere.orb.geometry.dispose(); // Free memory
+                        sphere.orb.material.dispose();
+                        sphere.orb = null; // Clear the reference to avoid reuse
+                        console.log("orb removed for recombination");
+                    } else {
+                        console.log("orb not removed yet");
+                    }                
+                } else {
+                    console.log("orb does not exist");
                 }
                 if (sphere.lerpProgress >= removalThreshold) {
                     removeSpherePair(sphere, sphere.lerpPartner);
@@ -711,7 +785,6 @@ function recombinationAnim() {
 
 // Helper function to remove a pair of spheres
 function removeSpherePair(sphere1, sphere2) {
-    console.log("Spheres recombined, removing from scene");
     scene.remove(sphere1.object);
     scene.remove(sphere2.object);
     electronSpheres = electronSpheres.filter(s => s !== sphere1 && s !== sphere2);
@@ -725,6 +798,7 @@ function removeSpherePair(sphere1, sphere2) {
     recombinationOccured = true;
 }
 
+
 function generation() {
     let position = new Vector3(
         THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
@@ -732,7 +806,7 @@ function generation() {
         THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
     // holes and electron are created at the same position
     let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
-    let electron = createSphereAt(position, 0x1F51FF, false);
+    let electron = createSphereAt(position.clone(), 0x1F51FF, false);
 
     // holes electron removed to maintain balance
     let randomIndex = 0;
@@ -748,6 +822,7 @@ function generation() {
         electronSpheres[randomIndex].object.geometry.dispose();
         electronSpheres[randomIndex].object.material.dispose();
         electronSpheres.splice(randomIndex, 1);
+
     }
     //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
     const orbGeo = new THREE.SphereGeometry(1, 32, 32);
@@ -782,25 +857,48 @@ function generation() {
                     
                 } else {
                     scene.remove(orbSphere);
-                    hole.canMove = true;
-                    electron.canMove = true;
-                    hole.crossReady = false;
-                    electron.crossReady = false;
-                    hole.recombine = false;
-                    electron.recombine = false;
+
                     boolean = false;
-                
-                
-                    holeSpheres.push({initPos: hole.object.position.clone(), crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-                    electronSpheres.push({initPos: electron.object.position.clone(), crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
+            
+                    holeSpheres.push({
+                        value: "h", 
+                        initPos: position.clone().add(new THREE.Vector3(2,0,0)), 
+                        crossReady: false, 
+                        crossed: false, 
+                        pause: false, 
+                        lerpProgress: 0, 
+                        lerping: false, 
+                        lerpPartner: new THREE.Vector3(), 
+                        id: "generated", 
+                        recombine: false, 
+                        canMove: true, 
+                        object: hole.object, 
+                        material: hole.material, 
+                        velocity: getBoltzVelocity(),
+                        speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, 
+                        scatterStartTime: performance.now(), 
+                        scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
+        
+                        electronSpheres.push({
+                            value: "e", 
+                            initPos: position.clone(), 
+                            crossReady: false, 
+                            crossed: false, 
+                            pause: false, 
+                            lerpProgress: 0, 
+                            lerping: false, 
+                            lerpPartner: new THREE.Vector3(), 
+                            id: "generated", 
+                            recombine: false, 
+                            canMove: true, 
+                            object: electron.object, 
+                            material: electron.material, 
+                            velocity: getBoltzVelocity(),
+                            speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, 
+                            scatterStartTime: performance.now(), 
+                            scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
+                        });    
                     
-                
-                    // if (hole.object.position <= 0) {
-                    //     hole.crossReady = true;
-                    // }
-                    // if (electron.object.position >= 0) {
-                    //     electron.crossReady = true;
-                    // }
                 } 
             }
             if (boolean == true) {
@@ -817,95 +915,130 @@ function generation() {
 
 }
 
-function solarCellGeneration() {
-        let position = new Vector3(
-            THREE.MathUtils.randFloat(-trapezoid_top/2 + (solarCell.position.x), trapezoid_top/2 + (solarCell.position.x)), 
-            THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
-            THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
-        // holes and electron are created at the same position
-        let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
-        let electron = createSphereAt(position, 0x1F51FF, false);
+// function solarCellGeneration() {
+//     console.log("in solarcell generation");
+//         let position = new Vector3(
+//             THREE.MathUtils.randFloat(-trapezoid_top/2 + (solarCell.position.x), trapezoid_top/2 + (solarCell.position.x)), 
+//             THREE.MathUtils.randFloat(-trapezoid_height/2, trapezoid_height/2), 
+//             THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
+        
+//         if (position.x < -cubeSize.x / 2 + 1 || position.x > cubeSize.x / 2 - 1 || position.y > cubeSize.y/2 - 1 || position.y < -cubeSize.y/2 + 1) {
+//             position.x = THREE.MathUtils.clamp(position.x, -cubeSize.x / 2 + 1, cubeSize.x / 2 - 1);
+//             position.y = THREE.MathUtils.clamp(position.y, -cubeSize.x / 2 + 1, cubeSize.x / 2 - 1);
+
+//         }
+            
+//         // holes and electron are created at the same position
+//         let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
+//         let electron = createSphereAt(position.clone(), 0x1F51FF, false);
+
+//         // holes electron removed to maintain balance
+//         let randomIndex = 0;
+//         if (position.x < cubeSize.x/2 && position.x > innerBoxSize/2) {
+//             randomIndex = Math.floor(Math.random() * holeSpheres.length);
+//             scene.remove(holeSpheres[randomIndex].object);
+//             holeSpheres[randomIndex].object.geometry.dispose();
+//             holeSpheres[randomIndex].object.material.dispose();
+//             holeSpheres.splice(randomIndex, 1);
+
+//         } else if (position.x > -cubeSize.x/2 && position.x < -innerBoxSize/2) {
+//             randomIndex = Math.floor(Math.random() * electronSpheres.length);
+//             scene.remove(electronSpheres[randomIndex].object);
+//             electronSpheres[randomIndex].object.geometry.dispose();
+//             electronSpheres[randomIndex].object.material.dispose();
+//             electronSpheres.splice(randomIndex, 1);
+//         }
+//         //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
+//         const orbGeo = new THREE.SphereGeometry(1, 32, 32);
+//         const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
+//         const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
     
-        // holes electron removed to maintain balance
-        let randomIndex = 0;
-        if (position.x < cubeSize.x/2 && position.x > innerBoxSize/2) {
-            randomIndex = Math.floor(Math.random() * holeSpheres.length);
-            scene.remove(holeSpheres[randomIndex].object);
-            holeSpheres[randomIndex].object.geometry.dispose();
-            holeSpheres[randomIndex].object.material.dispose();
-            holeSpheres.splice(randomIndex, 1);
-        } else if (position.x > -cubeSize.x/2 && position.x < -innerBoxSize/2) {
-            randomIndex = Math.floor(Math.random() * electronSpheres.length);
-            scene.remove(electronSpheres[randomIndex].object);
-            electronSpheres[randomIndex].object.geometry.dispose();
-            electronSpheres[randomIndex].object.material.dispose();
-            electronSpheres.splice(randomIndex, 1);
-        }
-        //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
-        const orbGeo = new THREE.SphereGeometry(1, 32, 32);
-        const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
-        const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+//         let midpoint = hole.object.position.add(electron.object.position).multiplyScalar(0.5);
     
-        let midpoint = hole.object.position.add(electron.object.position).multiplyScalar(0.5);
+//         //orb set to same position as hole and electron
+//         orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
+//         orbSphere.gradualVal = 0.5;
     
-        //orb set to same position as hole and electron
-        orbSphere.position.set(midpoint.x, midpoint.y, midpoint.z);
-        orbSphere.gradualVal = 0.5;
-    
-        scene.add(orbSphere);
-        let requestID;
-        let maxOrbSize = 6;
-        //push orb into array that I can access outside of this function to update the scale...
-        setTimeout(()=>{
-        let boolean = true;
-            var animateGeneration = (timestamp) => {
-                if (orbSphere.gradualVal !== undefined) {
-                    if (orbSphere.gradualVal <= maxOrbSize && orbSphere.material.opacity > 0) {
-                        orbSphere.scale.setScalar(orbSphere.gradualVal);
-                        // Calculate opacity based on the current scale
-                        let opacityFactor = Math.max(0, 1 - (orbSphere.gradualVal - 1) / (maxOrbSize - 1));
-                        orbSphere.material.opacity = opacityFactor;
+//         scene.add(orbSphere);
+//         let requestID;
+//         let maxOrbSize = 6;
+//         //push orb into array that I can access outside of this function to update the scale...
+//         setTimeout(()=>{
+//         let boolean = true;
+//             var animateGeneration = (timestamp) => {
+//                 if (orbSphere.gradualVal !== undefined) {
+//                     if (orbSphere.gradualVal <= maxOrbSize && orbSphere.material.opacity > 0) {
+//                         orbSphere.scale.setScalar(orbSphere.gradualVal);
+//                         // Calculate opacity based on the current scale
+//                         let opacityFactor = Math.max(0, 1 - (orbSphere.gradualVal - 1) / (maxOrbSize - 1));
+//                         orbSphere.material.opacity = opacityFactor;
                         
-                        orbSphere.gradualVal += 0.03; // Reduced speed for smoother animation
-                        let holeSpeed = new THREE.Vector3(-0.02, 0, 0);
-                        let electronSpeed =  new THREE.Vector3(0.02, 0, 0);
-                        hole.object.position.add(holeSpeed);
-                        electron.object.position.add(electronSpeed);
+//                         orbSphere.gradualVal += 0.03; // Reduced speed for smoother animation
+//                         let holeSpeed = new THREE.Vector3(-0.02, 0, 0);
+//                         let electronSpeed =  new THREE.Vector3(0.02, 0, 0);
+//                         hole.object.position.add(holeSpeed);
+//                         electron.object.position.add(electronSpeed);
                         
-                    } else {
-                        scene.remove(orbSphere);
-                        hole.canMove = true;
-                        electron.canMove = true;
-                        hole.crossReady = false;
-                        electron.crossReady = false;
-                        hole.recombine = false;
-                        electron.recombine = false;
-                        boolean = false;
+//                     } else {
+//                         scene.remove(orbSphere);
+
+//                         boolean = false;
                     
-                    
-                        holeSpheres.push({initPos: hole.object.position.clone(), crossReady: hole.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: hole.recombine, canMove: hole.canMove, object: hole.object, material: hole.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});
-                        electronSpheres.push({initPos: electron.object.position.clone(), crossReady: electron.crossReady, crossed: false, pause: false, lerpProgress: 0, lerping: false, lerpPartner: new THREE.Vector3(), id: 'generated', recombine: electron.recombine, canMove: electron.canMove, object: electron.object, material: electron.material, velocity: getBoltzVelocity(), speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, scatterStartTime: performance.now(), scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)});    
                         
-                    
-                        // if (hole.object.position <= 0) {
-                        //     hole.crossReady = true;
-                        // }
-                        // if (electron.object.position >= 0) {
-                        //     electron.crossReady = true;
-                        // }
-                    } 
-                }
-                if (boolean == true) {
-                requestID = requestAnimationFrame(animateGeneration);
-                }
-            }
-            requestAnimationFrame(animateGeneration);   
-            cancelAnimationFrame(requestID)
+//                         //pushed into main hole and electron arrays
+//                         holeSpheres.push({
+//                             value: "h", 
+//                             initPos: position.clone().add(new THREE.Vector3(2,0,0)), 
+//                             crossReady: false, 
+//                             crossed: false, 
+//                             pause: false, 
+//                             lerpProgress: 0, 
+//                             lerping: false, 
+//                             lerpPartner: new THREE.Vector3(), 
+//                             id: "generated", 
+//                             recombine: false, 
+//                             canMove: true, 
+//                             object: hole.object, 
+//                             material: hole.material, 
+//                             velocity: getBoltzVelocity(), 
+//                             speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, 
+//                             scatterStartTime: performance.now(), 
+//                             scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
+//                         });
+
+//                         electronSpheres.push({
+//                             value: "e", 
+//                             initPos: position.clone(),
+//                             crossReady: false, 
+//                             crossed: false, 
+//                             pause: false, 
+//                             lerpProgress: 0, 
+//                             lerping: false, 
+//                             lerpPartner: new THREE.Vector3(), 
+//                             id: "generated", 
+//                             recombine: false, 
+//                             canMove: true, 
+//                             object: electron.object, 
+//                             material: electron.material, 
+//                             velocity: getBoltzVelocity(), 
+//                             speed: Math.random() * (maxScalar - minScalar + 1) + minScalar, 
+//                             scatterStartTime: performance.now(), 
+//                             scatterTime: (scatterTimeMean + (perlin.noise(Math.random(0, numSpheres) * 100, Math.random(0, numSpheres) * 200, performance.now() * 0.001) - 0.5)*0.3)
+//                         });   
+
+//                     } 
+//                 }
+//                 if (boolean == true) {
+//                 requestID = requestAnimationFrame(animateGeneration);
+//                 }
+//             }
+//             requestAnimationFrame(animateGeneration);   
+//             cancelAnimationFrame(requestID)
     
-        }, 1000);
+//         }, 1000);
     
-        setTimeout(solarCellGeneration, 500);
-}
+//         setTimeout(solarCellGeneration, 500);
+// }
 
 function updateRecombinationStatus() {
     for (let electron of electronSpheres) {
@@ -1034,7 +1167,6 @@ function checkBounds(sphere1, sphere2, min, max) {
 
 // Function to reset GUI controls
 function resetGUI() {
-    console.log('reset attempted');
     gui.__controllers.forEach(controller => controller.setValue(controller.initialValue));
 }
 
@@ -1096,7 +1228,7 @@ function createSphere(i, minPos, maxPos, sphereColor, transparency) {
     THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1)
     );
     scene.add(sphere);
-    return {object: sphere, material: material, canMove: true};
+    return {object: sphere, material: material};
 }
 
 function createSphereAt(position, sphereColor, transparency) {
@@ -1118,7 +1250,7 @@ function createSphereAt(position, sphereColor, transparency) {
     // Random position within the cube as specified
     sphere.position.set(position.x, position.y, position.z);
     scene.add(sphere);
-    return {object: sphere, material: material, canMove: false};
+    return {object: sphere, material: material};
 }
 
 function updateArrow(origin, length, hex) {
@@ -1138,49 +1270,49 @@ function updateArrow(origin, length, hex) {
     } 
 }
 
-function createTrapezoidGeometry(topWidth, bottomWidth, height, depth) {
-    const geometry = new THREE.BufferGeometry();
+// function createTrapezoidGeometry(topWidth, bottomWidth, height, depth) {
+//     const geometry = new THREE.BufferGeometry();
   
-    const vertices = [
-      // Top face
-      -topWidth / 2, height, -depth / 2,
-      topWidth / 2, height, -depth / 2,
-      topWidth / 2, height, depth / 2,
-      -topWidth / 2, height, depth / 2,
+//     const vertices = [
+//       // Top face
+//       -topWidth / 2, height, -depth / 2,
+//       topWidth / 2, height, -depth / 2,
+//       topWidth / 2, height, depth / 2,
+//       -topWidth / 2, height, depth / 2,
   
-      // Bottom face
-      -bottomWidth / 2, 0, -depth / 2,
-      bottomWidth / 2, 0, -depth / 2,
-      bottomWidth / 2, 0, depth / 2,
-      -bottomWidth / 2, 0, depth / 2,
+//       // Bottom face
+//       -bottomWidth / 2, 0, -depth / 2,
+//       bottomWidth / 2, 0, -depth / 2,
+//       bottomWidth / 2, 0, depth / 2,
+//       -bottomWidth / 2, 0, depth / 2,
   
-      // Side faces
-      -topWidth / 2, height, -depth / 2,
-      -bottomWidth / 2, 0, -depth / 2,
-      -bottomWidth / 2, 0, depth / 2,
-      -topWidth / 2, height, depth / 2,
+//       // Side faces
+//       -topWidth / 2, height, -depth / 2,
+//       -bottomWidth / 2, 0, -depth / 2,
+//       -bottomWidth / 2, 0, depth / 2,
+//       -topWidth / 2, height, depth / 2,
   
-      topWidth / 2, height, -depth / 2,
-      bottomWidth / 2, 0, -depth / 2,
-      bottomWidth / 2, 0, depth / 2,
-      topWidth / 2, height, depth / 2
-    ];
+//       topWidth / 2, height, -depth / 2,
+//       bottomWidth / 2, 0, -depth / 2,
+//       bottomWidth / 2, 0, depth / 2,
+//       topWidth / 2, height, depth / 2
+//     ];
   
-    const indices = [
-      0, 1, 2, 2, 3, 0, // Top face
-      4, 5, 6, 6, 7, 4, // Bottom face
-      3, 2, 6, 6, 7, 3, // Front face
-      1, 5, 6, 6, 2, 1, // Right face
-      0, 3, 7, 7, 4, 0, // Left face
-      5, 1, 0, 0, 4, 5  // Back face
-    ];
+//     const indices = [
+//       0, 1, 2, 2, 3, 0, // Top face
+//       4, 5, 6, 6, 7, 4, // Bottom face
+//       3, 2, 6, 6, 7, 3, // Front face
+//       1, 5, 6, 6, 2, 1, // Right face
+//       0, 3, 7, 7, 4, 0, // Left face
+//       5, 1, 0, 0, 4, 5  // Back face
+//     ];
   
-    geometry.setIndex(indices);
-    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
-    geometry.computeVertexNormals();
+//     geometry.setIndex(indices);
+//     geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
+//     geometry.computeVertexNormals();
   
-    return geometry;
-  }
+//     return geometry;
+//   }
 
 function box( width, height, depth ) {
 
