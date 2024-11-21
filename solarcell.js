@@ -22,7 +22,7 @@ let orbitControls
 //PN Junction Initial Variables
 let electronSpheres = [];
 let holeSpheres = [];
-let numSpheres = 5;
+let numSpheres = 50;
 
 let cubeSize = new THREE.Vector3(150, 75, 75);
 let clock = new THREE.Clock();
