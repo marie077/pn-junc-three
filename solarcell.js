@@ -374,27 +374,27 @@ function update() {
     recombinationAnim();
    
     //check if a hole or electron needs to be supplied if they cross only if voltage level is negative
-    if (voltage < 0) {
+    if (voltage < 0.5) {
         sphereCrossed(electronSpheres, 'e');
         sphereCrossed(holeSpheres, 'h');
         checkGeneratedStatus();
     }
 
-    if (voltage > 0) {
-        if (recombinationOccured) {
-            let e_position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
-            let electron = createSphereAt(e_position, 0x1F51FF, false);
+    // if (voltage > 0) {
+    //     if (recombinationOccured) {
+    //         let e_position = new THREE.Vector3(cubeSize.x/2 + 50, 0, 0);
+    //         let electron = createSphereAt(e_position, 0x1F51FF, false);
 
-            electron.value = "e";
-            positiveBatteryElements.push(electron);
+    //         electron.value = "e";
+    //         positiveBatteryElements.push(electron);
                 
-            let h_position = new THREE.Vector3(-cubeSize.x/2 - 50, 0, 0);
-            let hole = createSphereAt(h_position, 0xFF3131, false);
+    //         let h_position = new THREE.Vector3(-cubeSize.x/2 - 50, 0, 0);
+    //         let hole = createSphereAt(h_position, 0xFF3131, false);
 
-            hole.value = "h";
-            positiveBatteryElements.push(hole);
-        }
-    }
+    //         hole.value = "h";
+    //         positiveBatteryElements.push(hole);
+    //     }
+    // }
     
     if (positiveBatteryElements.length > 0) { //if something exists in battery
         positive_battery_anim();
@@ -590,11 +590,17 @@ function positive_battery_anim() {
 
 //keeps track of the newly created electrons/holes after a sphere crosses to the other side
 function sphereCrossed(typeArray, type) { 
+    let e_count = 0;
+    let h_count = 0;
+    
     for (let i = 0; i < typeArray.length; i++) {
         let spherePosition = typeArray[i].object.position.x;
-        if (voltage < 0) {
+        //if (voltage < 0) {
             if (type == 'e') {
-                if (spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
+                if (spherePosition > innerBoxSize/2) {
+                    e_count= e_count+1;
+                    if (e_count > numSpheres ) {
+                    e_count= e_count-1;
                     let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
                     let electron = createSphereAt(position, 0x1F51FF, false);
                     // In sphereCrossed
@@ -610,11 +616,15 @@ function sphereCrossed(typeArray, type) {
                     electronSpheres[randomIndex].object.geometry.dispose();
                     electronSpheres[randomIndex].object.material.dispose();
                     electronSpheres.splice(randomIndex, 1);
+                    }
 
                 }
 
             } else if (type == 'h') {
-                if (spherePosition > innerBoxSize/2 && !typeArray[i].crossed) {
+                if (spherePosition < -innerBoxSize/2 ) {
+                    h_count= h_count+1;
+                    if (h_count > numSpheres ) {
+                    h_count= h_count-1;    
                     let position = new THREE.Vector3(-cubeSize.x/2 + 5, 0, 0);
                     let hole = createSphereAt(position, 0xFF3131, false);
                     hole.value = "h";
@@ -627,10 +637,54 @@ function sphereCrossed(typeArray, type) {
                     holeSpheres[randomIndex].object.geometry.dispose();
                     holeSpheres[randomIndex].object.material.dispose();
                     holeSpheres.splice(randomIndex, 1);
+                    }
                 }
             }
-        }
+       // }
     }
+   
+
+    // for (let i = 0; i < typeArray.length; i++) {
+    //     let spherePosition = typeArray[i].object.position.x;
+    //     if (voltage < 0) {
+    //         if (type == 'e') {
+    //             if (spherePosition < -innerBoxSize/2 && !typeArray[i].crossed) {
+    //                 let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
+    //                 let electron = createSphereAt(position, 0x1F51FF, false);
+    //                 // In sphereCrossed
+                   
+    //                 electron.value = "e";
+
+    //                 typeArray[i].crossed = true;
+    //                 negativeBatteryElements.push(electron);
+
+
+    //                 let randomIndex = Math.floor(Math.random() * electronSpheres.length);
+    //                 scene.remove(electronSpheres[randomIndex].object);
+    //                 electronSpheres[randomIndex].object.geometry.dispose();
+    //                 electronSpheres[randomIndex].object.material.dispose();
+    //                 electronSpheres.splice(randomIndex, 1);
+
+    //             }
+
+    //         } else if (type == 'h') {
+    //             if (spherePosition > innerBoxSize/2 && !typeArray[i].crossed) {
+    //                 let position = new THREE.Vector3(-cubeSize.x/2 + 5, 0, 0);
+    //                 let hole = createSphereAt(position, 0xFF3131, false);
+    //                 hole.value = "h";
+    //                 typeArray[i].crossed = true;
+    //                 negativeBatteryElements.push(hole);
+
+    //                 //remove last electron from the existing electronArray
+    //                 let randomIndex = Math.floor(Math.random() * holeSpheres.length);
+    //                 scene.remove(holeSpheres[randomIndex].object);
+    //                 holeSpheres[randomIndex].object.geometry.dispose();
+    //                 holeSpheres[randomIndex].object.material.dispose();
+    //                 holeSpheres.splice(randomIndex, 1);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 
@@ -934,20 +988,20 @@ function solarCellGeneration() {
 
         // holes electron removed to maintain balance
         let randomIndex = 0;
-        if (position.x < cubeSize.x/2 && position.x > innerBoxSize/2) {
-            randomIndex = Math.floor(Math.random() * holeSpheres.length);
-            scene.remove(holeSpheres[randomIndex].object);
-            holeSpheres[randomIndex].object.geometry.dispose();
-            holeSpheres[randomIndex].object.material.dispose();
-            holeSpheres.splice(randomIndex, 1);
+        // if (position.x < cubeSize.x/2 && position.x > innerBoxSize/2) {
+        //     randomIndex = Math.floor(Math.random() * holeSpheres.length);
+        //     scene.remove(holeSpheres[randomIndex].object);
+        //     holeSpheres[randomIndex].object.geometry.dispose();
+        //     holeSpheres[randomIndex].object.material.dispose();
+        //     holeSpheres.splice(randomIndex, 1);
 
-        } else if (position.x > -cubeSize.x/2 && position.x < -innerBoxSize/2) {
-            randomIndex = Math.floor(Math.random() * electronSpheres.length);
-            scene.remove(electronSpheres[randomIndex].object);
-            electronSpheres[randomIndex].object.geometry.dispose();
-            electronSpheres[randomIndex].object.material.dispose();
-            electronSpheres.splice(randomIndex, 1);
-        }
+        // } else if (position.x > -cubeSize.x/2 && position.x < -innerBoxSize/2) {
+        //     randomIndex = Math.floor(Math.random() * electronSpheres.length);
+        //     scene.remove(electronSpheres[randomIndex].object);
+        //     electronSpheres[randomIndex].object.geometry.dispose();
+        //     electronSpheres[randomIndex].object.material.dispose();
+        //     electronSpheres.splice(randomIndex, 1);
+        // }
         //an orb is created of the same size as the hole and electron (1) at the same position, but orb grows as the two holes and electrons move  
         const orbGeo = new THREE.SphereGeometry(1, 32, 32);
         const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4});
