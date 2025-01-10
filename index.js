@@ -353,14 +353,14 @@ function update() {
         innerCube.position.set(0, 0, 0);
         scene.add(innerCube);
 
-        let origin_x = innerBoxSize/2;
+        let origin_x = 0;
         // ARROW IMPLEMENTATION
-        // if (voltage > 0) {
-        //     origin_x = innerBoxSize/2 + 10;
-        // } else if (voltage < 0) {
-        // // origin_x = innerBoxSize/2 + 30;
-        //     origin_x = innerBoxSize/2;
-        // }
+        if (voltage > 0) {
+            origin_x = innerBoxSize/2;
+        } else if (voltage < 0) {
+        // origin_x = innerBoxSize/2 + 30;
+            origin_x = innerBoxSize;
+        }
         const origin = new THREE.Vector3(origin_x, 70, 0 );
         const length = innerBoxSize;
         const hex = 0xffff00;
