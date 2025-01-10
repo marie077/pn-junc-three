@@ -144,6 +144,7 @@ function init() {
     voltageControl.addEventListener('input', () => {
         const voltageLevel = parseFloat(voltageControl.value);
         voltage = voltageLevel;
+        document.getElementById("myText").innerHTML = voltage;
      });
 
 

@@ -37,12 +37,13 @@
 					<p> Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </p>	
 					<div id="voltage-range-container">
 						<label for="voltage-range" style ="color:white; padding: 3em" for="voltage">Voltage Level:</label>
-						<input type="range" id="voltage" name="voltage-range" min="-1.4" max="0.4" step="0.01" value="0.0">
+						<input autocomplete="off" type="range" id="voltage" name="voltage-range" min="-1.4" max="0.4" step="0.01" value=0.0>
 						
 						<span class="range-value-label">
 							<span id="range-min-value">-1.4</span> to                           
 							<span id="range-max-value">0.4</span>
 						</span>
+						<h1>Voltage:  <span id="myText"></span></h1>
 					</div>
 					
 				</div>

@@ -124,7 +124,8 @@ function init() {
         x: 0.0,
     };
 
-  
+    document.getElementById("myText").innerHTML = 0;
+
 
     const resetButton = { 'Reset Cube': resetGUI };
 
@@ -145,6 +146,7 @@ function init() {
     voltageControl.addEventListener('input', () => {
         const voltageLevel = parseFloat(voltageControl.value);
         voltage = voltageLevel;
+        document.getElementById("myText").innerHTML = voltage;
      });
 
 
@@ -351,14 +353,14 @@ function update() {
         innerCube.position.set(0, 0, 0);
         scene.add(innerCube);
 
-        let origin_x;
+        let origin_x = innerBoxSize/2;
         // ARROW IMPLEMENTATION
-        if (voltage > 0) {
-            origin_x = innerBoxSize/2;
-        } else if (voltage < 0) {
-        // origin_x = innerBoxSize/2 + 30;
-            origin_x = innerBoxSize/2;
-        }
+        // if (voltage > 0) {
+        //     origin_x = innerBoxSize/2 + 10;
+        // } else if (voltage < 0) {
+        // // origin_x = innerBoxSize/2 + 30;
+        //     origin_x = innerBoxSize/2;
+        // }
         const origin = new THREE.Vector3(origin_x, 70, 0 );
         const length = innerBoxSize;
         const hex = 0xffff00;
