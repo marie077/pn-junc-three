@@ -596,50 +596,50 @@ function sphereCrossed(typeArray, type) {
     for (let i = 0; i < typeArray.length; i++) {
         let spherePosition = typeArray[i].object.position.x;
         //if (voltage < 0) {
-            if (type == 'e') {
-                if (spherePosition > innerBoxSize/2) {
-                    e_count= e_count+1;
-                    if (e_count > numSpheres ) {
-                    e_count= e_count-1;
-                    let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
-                    let electron = createSphereAt(position, 0x1F51FF, false);
-                    // In sphereCrossed
-                   
-                    electron.value = "e";
+        if (type == 'e') {
+            if (spherePosition > innerBoxSize/2) {
+                e_count= e_count+1;
+                if (e_count > numSpheres ) {
+                e_count= e_count-1;
+                let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
+                let electron = createSphereAt(position, 0x1F51FF, false);
+                // In sphereCrossed
+                
+                electron.value = "e";
 
-                    typeArray[i].crossed = true;
-                    negativeBatteryElements.push(electron);
+                typeArray[i].crossed = true;
+                negativeBatteryElements.push(electron);
 
 
-                    let randomIndex = Math.floor(Math.random() * electronSpheres.length);
-                    scene.remove(electronSpheres[randomIndex].object);
-                    electronSpheres[randomIndex].object.geometry.dispose();
-                    electronSpheres[randomIndex].object.material.dispose();
-                    electronSpheres.splice(randomIndex, 1);
-                    }
-
+                let randomIndex = Math.floor(Math.random() * electronSpheres.length);
+                scene.remove(electronSpheres[randomIndex].object);
+                electronSpheres[randomIndex].object.geometry.dispose();
+                electronSpheres[randomIndex].object.material.dispose();
+                electronSpheres.splice(randomIndex, 1);
                 }
 
-            } else if (type == 'h') {
-                if (spherePosition < -innerBoxSize/2 ) {
-                    h_count= h_count+1;
-                    if (h_count > numSpheres ) {
-                    h_count= h_count-1;    
-                    let position = new THREE.Vector3(-cubeSize.x/2 + 5, 0, 0);
-                    let hole = createSphereAt(position, 0xFF3131, false);
-                    hole.value = "h";
-                    typeArray[i].crossed = true;
-                    negativeBatteryElements.push(hole);
+            }
 
-                    //remove last electron from the existing electronArray
-                    let randomIndex = Math.floor(Math.random() * holeSpheres.length);
-                    scene.remove(holeSpheres[randomIndex].object);
-                    holeSpheres[randomIndex].object.geometry.dispose();
-                    holeSpheres[randomIndex].object.material.dispose();
-                    holeSpheres.splice(randomIndex, 1);
-                    }
+        } else if (type == 'h') {
+            if (spherePosition < -innerBoxSize/2 ) {
+                h_count= h_count+1;
+                if (h_count > numSpheres ) {
+                h_count= h_count-1;    
+                let position = new THREE.Vector3(-cubeSize.x/2 + 5, 0, 0);
+                let hole = createSphereAt(position, 0xFF3131, false);
+                hole.value = "h";
+                typeArray[i].crossed = true;
+                negativeBatteryElements.push(hole);
+
+                //remove last electron from the existing electronArray
+                let randomIndex = Math.floor(Math.random() * holeSpheres.length);
+                scene.remove(holeSpheres[randomIndex].object);
+                holeSpheres[randomIndex].object.geometry.dispose();
+                holeSpheres[randomIndex].object.material.dispose();
+                holeSpheres.splice(randomIndex, 1);
                 }
             }
+        }
        // }
     }
    
