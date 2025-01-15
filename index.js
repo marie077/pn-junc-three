@@ -797,8 +797,8 @@ function updateSpherePosition() {
 }
 
 function recombinationAnim() {
-    const lerpSpeed = 0.005; // Adjust for faster/slower lerping
-    const removalThreshold = 0.95; // When to consider spheres "recombined"
+    const lerpSpeed = 0.01; // Adjust for faster/slower lerping
+    const removalThreshold = 0.6; // When to consider spheres "recombined"
     const pauseDuration = 60; // Number of frames to pause (adjust as needed)
     
 
@@ -858,16 +858,17 @@ function recombinationAnim() {
                 sphere.lerpProgress += lerpSpeed;
             
                 sphere.object.position.lerp(sphere.targetPosition, sphere.lerpProgress);
-                let startingRadius = 3;
+                
                 // Check if lerping is complete
                 
                 // alright we only want to create the orb once, so only create if an orb does not exist
                 if (sphere.lerpProgress <= .25 && !sphere.orb && !sphere.orbCreated) { // when lerping is 25% done, create an orb 
-                    const orbGeo = new THREE.SphereGeometry(startingRadius, 32, 32);
+                    const orbGeo = new THREE.SphereGeometry(3, 32, 32);
                     const orbMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4});
                     const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
                     orbSphere.position.copy(sphere.targetPosition);
                     sphere.orb = orbSphere;
+					sphere.orb.gradualVal = 3;
                     sphere.orbCreated = true;
                     console.log("orb added to screen");
                     scene.add(sphere.orb);
@@ -876,11 +877,13 @@ function recombinationAnim() {
                     console.log("orb exists");
                     // Update orb position and scale
                     sphere.orb.position.copy(sphere.targetPosition);
-                    let scale = 1 - (sphere.lerpProgress - 0.5) * 2; // Scale from 1 to 0 as lerp goes from 0.5 to 1
-                    sphere.orb.scale.setScalar(Math.max(0, scale));
+                    //let scale = 1 - (sphere.lerpProgress - 0.5) * 2; // Scale from 1 to 0 as lerp goes from 0.5 to 1
+                    //sphere.orb.scale.setScalar(Math.max(0, scale));
+				    sphere.orb.scale.setScalar(sphere.orb.gradualVal);
+					sphere.orb.gradualVal -= 0.05;
 
                     // Update opacity
-                    sphere.orb.material.opacity = 0.3 * Math.max(0, scale);  
+                    sphere.orb.material.opacity = 0.3 * Math.max(0, sphere.orb.gradualVal);  
                     // console.log("orb opacity value:", sphere.orb.material.opacity );
                     if ( sphere.orb.material.opacity <= 0.04) {
                         scene.remove(sphere.orb);
@@ -969,7 +972,7 @@ function generation() {
                     let opacityFactor = Math.max(0, 1 - (orbSphere.gradualVal - 1) / (maxOrbSize - 1));
                     orbSphere.material.opacity = opacityFactor;
                     
-                    orbSphere.gradualVal += 0.03; // Reduced speed for smoother animation
+                    orbSphere.gradualVal += 0.1; // Reduced speed for smoother animation
                     let holeSpeed = new THREE.Vector3(-0.02, 0, 0);
                     let electronSpeed =  new THREE.Vector3(0.02, 0, 0);
                     hole.object.position.add(holeSpeed);
