@@ -78,18 +78,18 @@ let controllerGrip1, controllerGrip2;
 // controller states
 const controllerStates = {
 	leftController: {
-		thumbStick: {x:0, y:0},
+		thumbstick: {x:0, y:0},
 		trigger: 0
 	},
 	rightController: {
-		thumbStick: {x:0, y:0},
+		thumbstick: {x:0, y:0},
 		trigger: 0
 	}
 };
 
 //movement settings
 const vrSettings = {
-	speed: 2,
+	moveSpeed: 2,
 	rotationSpeed: 0.05
 };
 
@@ -123,7 +123,7 @@ function init() {
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.xr.enabled = true;
-    renderer.xr.setReferenceSpaceType('local');
+    renderer.xr.setReferenceSpaceType('local-floor');
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
 	
@@ -478,7 +478,7 @@ function setUpVRControls() {
 		controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
 		controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
 		
-		scene.add(controller1, controller2, controllerGrip1, controllerGrip1);
+		scene.add(controller1, controller2, controllerGrip1, controllerGrip2);
 }
 
 // Handle controller input
@@ -496,8 +496,8 @@ function handleControllerInput(frame) {
             controllerStates.rightController;
 
         // Get thumbstick values
-        state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
-        state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
+        state.thumbstick.x = inputSource.gamepad.axes[0] || 0;
+        state.thumbstick.y = inputSource.gamepad.axes[1] || 0;
         
         // Get trigger value
         state.trigger = inputSource.gamepad.buttons[0].value;
