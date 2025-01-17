@@ -487,6 +487,9 @@ function handleControllerInput(frame) {
 
     const session = frame.session;
     const inputSources = Array.from(session.inputSources);
+	
+	//debug
+	console.log("number of input sources:" + inputSources.length);
 
     inputSources.forEach(inputSource => {
         if (!inputSource.gamepad) return;
