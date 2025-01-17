@@ -118,6 +118,7 @@ function init() {
     container = document.getElementById('three-container-scene-1');
     //scene
     scene = new THREE.Scene();
+	scene.background = new THREE.Color(0x000000);
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 116;
@@ -346,7 +347,6 @@ function update() {
                 });
             }
         }
-		
         let currentTime = performance.now();
         let time = clock.getDelta()/15;
         scene.remove(innerCube);
