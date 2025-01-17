@@ -496,8 +496,8 @@ function handleControllerInput(frame) {
             controllerStates.rightController;
 
         // Get thumbstick values
-        state.thumbstick.x = inputSource.gamepad.axes[0] || 0;
-        state.thumbstick.y = inputSource.gamepad.axes[1] || 0;
+        state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
+        state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
         
         // Get trigger value
         state.trigger = inputSource.gamepad.buttons[0].value;
