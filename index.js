@@ -75,6 +75,8 @@ let h_sphere_outside_depletion_range = false;
 //VR control variables
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
+let dolly;
+let xrSession = null;
 // controller states
 const controllerStates = {
 	leftController: {
@@ -126,7 +128,7 @@ function init() {
     renderer.xr.setReferenceSpaceType('local-floor');
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
-	
+	dolly = new THREE.Object3D();
 	setUpVRControls();
 	
 		
@@ -326,6 +328,25 @@ function init() {
 function update() {
     renderer.setAnimationLoop( function(timestamp, frame) {
         // updateId = requestAnimationFrame( update );
+		if (frame) {
+            const session = frame.session;
+            if (session) {
+                const inputSources = Array.from(session.inputSources);
+                
+                inputSources.forEach(inputSource => {
+                    if (!inputSource.gamepad) return;
+
+                    const state = inputSource.handedness === 'left' ? 
+                        controllerStates.leftController : 
+                        controllerStates.rightController;
+
+                    // Get thumbstick values (using axes 2 and 3 for Oculus controllers)
+                    state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
+                    state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
+                });
+            }
+        }
+		
         let currentTime = performance.now();
         let time = clock.getDelta()/15;
         scene.remove(innerCube);
@@ -414,8 +435,7 @@ function update() {
         // checkBounds(holeSpheres, electronSpheres, hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
         checkBounds(holeSpheres, electronSpheres, boxMin, boxMax);
         // orbitControls.update();
-		handleControllerInput(frame);
-		renderer.xr.updateCamera( camera );
+		updateCamera();
         renderer.render( scene, camera );
 		
     });
@@ -448,11 +468,17 @@ function buildController(data) {
 }
 
 function setUpVRControls() {
-		//controllers
-		controller1 = renderer.xr.getController(0);
-		controller2 = renderer.xr.getController(1);
-		
-		controller1.addEventListener('selectstart', onSelectStart);
+    // Create dolly for camera movement
+    dolly = new THREE.Object3D();
+    dolly.position.set(0, 0, 0);
+    dolly.add(camera);
+    scene.add(dolly);
+
+    //controllers
+    controller1 = renderer.xr.getController(0);
+    controller2 = renderer.xr.getController(1);
+    
+    controller1.addEventListener('selectstart', onSelectStart);
     controller1.addEventListener('selectend', onSelectEnd);
     controller1.addEventListener('connected', function(event) {
         this.add(buildController(event.data));
@@ -470,59 +496,60 @@ function setUpVRControls() {
         this.remove(this.children[0]);
     });
 
-		//controllerModelFactory
-		const controllerModelFactory = new XRControllerModelFactory();
-		
-		//controllergrips
-		controllerGrip1 = renderer.xr.getControllerGrip(0);
-		controllerGrip2 = renderer.xr.getControllerGrip(1);
-		
-		controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
-		controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
-		
-		scene.add(controller1, controller2, controllerGrip1, controllerGrip2);
+    //controllerModelFactory
+    const controllerModelFactory = new XRControllerModelFactory();
+    
+    //controllergrips
+    controllerGrip1 = renderer.xr.getControllerGrip(0);
+    controllerGrip2 = renderer.xr.getControllerGrip(1);
+    
+    controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+    controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+    
+    // Add controllers to dolly
+    dolly.add(controller1);
+    dolly.add(controller2);
+    dolly.add(controllerGrip1);
+    dolly.add(controllerGrip2);
 }
 
 // Handle controller input
-function handleControllerInput(frame) {
-    if (!frame) return;
+async function initXR(frame) {
 
-    const session = frame.session;
-    const inputSources = Array.from(session.inputSources);
+
+    const xrSession = await navigator.xr.requestSession('immersive-vr');
+
+    const inputSource = xrSession.inputSources[0];
+	controllerGrip1 = xrSession.requestReferebceSpace(inputSource.targetRaySpace);
 	
 	//debug
 	console.log("number of input sources:" + inputSources.length);
 
-    inputSources.forEach(inputSource => {
-        if (!inputSource.gamepad) return;
-
-        const state = inputSource.handedness === 'left' ? 
-            controllerStates.leftController : 
-            controllerStates.rightController;
-
-        // Get thumbstick values
-        state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
-        state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
-        
-        // Get trigger value
-        state.trigger = inputSource.gamepad.buttons[0].value;
-    });
-
-    // Apply movement based on left controller
-    const leftThumbstick = controllerStates.leftController.thumbstick;
     
-    // Forward/backward movement (Z-axis)
-    camera.position.z += leftThumbstick.y * vrSettings.moveSpeed;
-    
-    // Left/right movement (X-axis)
-    camera.position.x += leftThumbstick.x * vrSettings.moveSpeed;
-
-    // Apply rotation based on right controller
-    const rightThumbstick = controllerStates.rightController.thumbstick;
-    
-    // Rotate around Y-axis
-    camera.rotation.y -= rightThumbstick.x * vrSettings.rotationSpeed;
 }
+
+function updateCamera() {
+    if (!renderer.xr.isPresenting) return;
+
+    const leftThumbstick = controllerStates.leftController.thumbstick;
+    const rightThumbstick = controllerStates.rightController.thumbstick;
+
+    // Forward/backward movement based on left thumbstick Y
+    if (Math.abs(leftThumbstick.y) > 0.1) {
+        dolly.position.z += leftThumbstick.y * vrSettings.moveSpeed;
+    }
+
+    // Left/right movement based on left thumbstick X
+    if (Math.abs(leftThumbstick.x) > 0.1) {
+        dolly.position.x += leftThumbstick.x * vrSettings.moveSpeed;
+    }
+
+    // Rotation based on right thumbstick X
+    if (Math.abs(rightThumbstick.x) > 0.1) {
+        dolly.rotation.y -= rightThumbstick.x * vrSettings.rotationSpeed;
+    }
+}
+
 
 // Add these controller event functions
 function onSelectStart() {
