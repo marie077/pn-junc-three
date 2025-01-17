@@ -5,7 +5,8 @@ import * as BufferGeometryUtils from 'https://unpkg.com/three@0.163.0/examples/j
 import { Vector3 } from 'https://unpkg.com/three@0.163.0/src/math/Vector3.js';
 import { TransformControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/controls/TransformControls.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/controls/OrbitControls.js';
-import { VRButton } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/VRButton.js';
+import { XRButton } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRButton.js';
+import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRControllerModelFactory.js'; 
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
@@ -64,15 +65,36 @@ let negativeBatteryElements = [];
 // populate boltz distribution table
 let boltz = []; 
 
-//populated boltz array
-
 //recombination variables
 let minDistance = 30;
 let recombinationOccured = false;
 let e_sphere_outside_depletion_range = false;
 let h_sphere_outside_depletion_range = false;
 
+
+//VR control variables
+let controller1, controller2;
+let controllerGrip1, controllerGrip2;
+// controller states
+const controllerStates = {
+	leftController: {
+		thumbStick: {x:0, y:0},
+		trigger: 0
+	},
+	rightController: {
+		thumbStick: {x:0, y:0},
+		trigger: 0
+	}
+};
+
+//movement settings
+const vrSettings = {
+	speed: 2,
+	rotationSpeed: 0.05
+};
+
 init();
+
 update();
 
  
@@ -103,15 +125,15 @@ function init() {
     renderer.xr.enabled = true;
     renderer.xr.setReferenceSpaceType('local');
     container.appendChild( renderer.domElement );
-    container.appendChild(VRButton.createButton(renderer));
-    //lighting
+	container.appendChild(XRButton.createButton(renderer));
+	
+	setUpVRControls();
+	
+		
+	//lighting
     const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
     scene.add( light );
 
- 
-    
-
-   
     // GUI
     gui = new dat.GUI();
     cameraControls = {
@@ -149,40 +171,12 @@ function init() {
         document.getElementById("myText").innerHTML = voltage;
      });
 
-
-
-    // gui.add(temperatureLevel, 'temp', -100, 500).name('temperature').step(0.1).onChange(() => {
-    //     temperature = temperatureLevel.temp;
-    // });
     // Add a button to reset GUI controls
     gui.add(resetButton, 'Reset Cube');
     
 
     // window resize handler
     window.addEventListener( 'resize', onWindowResize);
-
-    // //transform controls
-    // let control = new TransformControls( camera, renderer.domElement );
-    // // Create orbit controls for camera navigation
-    // orbitControls = new OrbitControls(camera, renderer.domElement);
-    // // solar cell init
-  
-    // const solarCellGeo = createTrapezoidGeometry(trapezoid_top, trapezoid_bottom, trapezoid_height, cubeSize.z);
-    // const solarMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFF00, transparent: true, opacity: 0.4} ); 
-    // solarCell = new THREE.Mesh( solarCellGeo, solarMaterial ); 
-    // solarCell.position.set(0, -30, 0);
-    // scene.add(solarCell);
-    
-    // control.attach( solarCell );
-    // scene.add(control);
-
-    // // Set the transform mode to 'translate'
-    // control.setMode('translate');
-
-    // // Add event listeners for transform control events
-    // control.addEventListener('dragging-changed', (event) => {
-    // orbitControls.enabled = !event.value;
-    // });
 
     // Create an angular path
     const curvePath = new THREE.CurvePath();
@@ -330,7 +324,7 @@ function init() {
 }
 
 function update() {
-    renderer.setAnimationLoop( function() {
+    renderer.setAnimationLoop( function(timestamp, frame) {
         // updateId = requestAnimationFrame( update );
         let currentTime = performance.now();
         let time = clock.getDelta()/15;
@@ -421,62 +415,120 @@ function update() {
         checkBounds(holeSpheres, electronSpheres, boxMin, boxMax);
         // orbitControls.update();
         renderer.render( scene, camera );
+		handleControllerInput(frame);
     });
 }
+// Define buildController function
+function buildController(data) {
+    let geometry, material;
 
-// function checkGeneratedStatus() {
-//     for (let sphere of [...electronSpheres, ...holeSpheres]) {
-//         if (sphere.id == "generated") {
-//             if (sphere.initPos != undefined) {
+    switch (data.targetRayMode) {
+        case 'tracked-pointer':
+            geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, -1], 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute([0.5, 0.5, 0.5, 0, 0, 0], 3));
 
-//                 if (sphere.value == 'e') {
-//                     //electron initial position is within the center of the pn junction (where it generated at)
-//                     if (sphere.initPos.x < innerBoxSize/2 && sphere.initPos.x > -innerBoxSize/2) {
-//                         //current electron position moves towards its home side then electron exits the battery
-//                         if (sphere.object.position.x < cubeSize.x/2 && sphere.object.position.x > innerBoxSize/2 && !sphere.crossed) {
-//                             let position = new THREE.Vector3(cubeSize.x/2 - 5, 0, 0);
-//                             let electron = createSphereAt(position, 0x1F51FF, false);
-//                             electron.value = "e";
-//                             sphere.id = "normal";
-//                             sphere.crossed = true;
-//                             negativeBatteryElements.push(electron);
+            material = new THREE.LineBasicMaterial({ 
+                vertexColors: true, 
+                blending: THREE.AdditiveBlending 
+            });
+
+            return new THREE.Line(geometry, material);
+
+        case 'gaze':
+            geometry = new THREE.RingGeometry(0.02, 0.04, 32).translate(0, 0, -1);
+            material = new THREE.MeshBasicMaterial({ 
+                opacity: 0.5, 
+                transparent: true 
+            });
+            return new THREE.Mesh(geometry, material);
+    }
+}
+
+function setUpVRControls() {
+		//controllers
+		controller1 = renderer.xr.getController(0);
+		controller2 = renderer.xr.getController(1);
+		
+		controller1.addEventListener('selectstart', onSelectStart);
+    controller1.addEventListener('selectend', onSelectEnd);
+    controller1.addEventListener('connected', function(event) {
+        this.add(buildController(event.data));
+    });
+    controller1.addEventListener('disconnected', function() {
+        this.remove(this.children[0]);
+    });
+
+    controller2.addEventListener('selectstart', onSelectStart);
+    controller2.addEventListener('selectend', onSelectEnd);
+    controller2.addEventListener('connected', function(event) {
+        this.add(buildController(event.data));
+    });
+    controller2.addEventListener('disconnected', function() {
+        this.remove(this.children[0]);
+    });
+
+		//controllerModelFactory
+		const controllerModelFactory = new XRControllerModelFactory();
+		
+		//controllergrips
+		controllerGrip1 = renderer.xr.getControllerGrip(0);
+		controllerGrip2 = renderer.xr.getControllerGrip(1);
+		
+		controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+		controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+		
+		scene.add(controller1, controller2, controllerGrip1, controllerGrip1);
+}
+
+// Handle controller input
+function handleControllerInput(frame) {
+    if (!frame) return;
+
+    const session = frame.session;
+    const inputSources = Array.from(session.inputSources);
+
+    inputSources.forEach(inputSource => {
+        if (!inputSource.gamepad) return;
+
+        const state = inputSource.handedness === 'left' ? 
+            controllerStates.leftController : 
+            controllerStates.rightController;
+
+        // Get thumbstick values
+        state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
+        state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
         
+        // Get trigger value
+        state.trigger = inputSource.gamepad.buttons[0].value;
+    });
+
+    // Apply movement based on left controller
+    const leftThumbstick = controllerStates.leftController.thumbstick;
     
-//                             let randomIndex = Math.floor(Math.random() * electronSpheres.length);
-//                             scene.remove(electronSpheres[randomIndex].object);
-//                             electronSpheres[randomIndex].object.geometry.dispose();
-//                             electronSpheres[randomIndex].object.material.dispose();
-//                             electronSpheres.splice(randomIndex, 1);
+    // Forward/backward movement (Z-axis)
+    camera.position.z += leftThumbstick.y * vrSettings.moveSpeed;
+    
+    // Left/right movement (X-axis)
+    camera.position.x += leftThumbstick.x * vrSettings.moveSpeed;
 
-//                         }
-//                     }
-//                 } else if (sphere.value == "h") {
-//                     if (sphere.initPos.x < innerBoxSize/2 && sphere.initPos.x > -innerBoxSize/2) {
-//                         if (sphere.object.position.x < -innerBoxSize/2 && sphere.object.position.x > -cubeSize.x/2 && !sphere.crossed) {
-//                             let position = new THREE.Vector3(-cubeSize.x/2 + 5, 0, 0);
-//                             let hole = createSphereAt(position, 0xFF3131, false);
-//                             hole.value = "h";
-//                             sphere.crossed = true;
-//                             sphere.id = "normal";
-//                             negativeBatteryElements.push(hole);
-        
-//                             //remove last electron from the existing electronArray
-//                             let randomIndex = Math.floor(Math.random() * holeSpheres.length);
-//                             scene.remove(holeSpheres[randomIndex].object);
-//                             holeSpheres[randomIndex].object.geometry.dispose();
-//                             holeSpheres[randomIndex].object.material.dispose();
-//                             holeSpheres.splice(randomIndex, 1);
+    // Apply rotation based on right controller
+    const rightThumbstick = controllerStates.rightController.thumbstick;
+    
+    // Rotate around Y-axis
+    camera.rotation.y -= rightThumbstick.x * vrSettings.rotationSpeed;
+}
 
-//                         }
-                        
-//                     }
-//                 }
-//             }   
+// Add these controller event functions
+function onSelectStart() {
+    this.userData.isSelecting = true;
+}
 
-//         }
-//     }
-// }
+function onSelectEnd() {
+    this.userData.isSelecting = false;
+}
 
+	
 function negative_battery_anim() {
     for (let i = negativeBatteryElements.length - 1; i >= 0; i--) {
         let sphere = negativeBatteryElements[i];
