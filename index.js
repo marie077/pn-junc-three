@@ -414,8 +414,10 @@ function update() {
         // checkBounds(holeSpheres, electronSpheres, hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
         checkBounds(holeSpheres, electronSpheres, boxMin, boxMax);
         // orbitControls.update();
-        renderer.render( scene, camera );
 		handleControllerInput(frame);
+		renderer.xr.updateCamera( camera );
+        renderer.render( scene, camera );
+		
     });
 }
 // Define buildController function
