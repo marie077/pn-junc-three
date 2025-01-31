@@ -85,11 +85,13 @@ let xrSession = null;
 const controllerStates = {
 	leftController: {
 		thumbstick: {x:0, y:0},
-		trigger: 0
+		trigger: 0,
+        triggerPressed: false
 	},
 	rightController: {
 		thumbstick: {x:0, y:0},
-		trigger: 0
+		trigger: 0,
+        triggerPressed: false
 	}
 };
 
@@ -330,12 +332,6 @@ function init() {
             scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
 
-    
-
-    // if (solarCellActivated) {
-    //     setTimeout(solarCellGeneration, 500);
-    // }
-    // setTimeout(generation, 500);
 }
 
 function update() {
@@ -356,6 +352,19 @@ function update() {
                     // Get thumbstick values (using axes 2 and 3 for Oculus controllers)
                     state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
                     state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
+               
+                            // Get trigger values (usually first button in buttons array)
+                    state.trigger = inputSource.gamepad.buttons[0].value;
+                    state.triggerPressed = inputSource.gamepad.buttons[0].pressed;
+
+                    // Adjust voltage based on triggers
+                    if (state === controllerStates.rightController && state.triggerPressed) {
+                        // Increase voltage (max 0.4)
+                        voltage = Math.min(0.4, voltage + 0.01);
+                    } else if (state === controllerStates.leftController && state.triggerPressed) {
+                        // Decrease voltage (min -1.4)
+                        voltage = Math.max(-1.4, voltage - 0.01);
+                    }
                 });
             }
         }
@@ -395,22 +404,19 @@ function update() {
         updateArrow(origin, length, hex);
     
         //SCATTER (update velocities for scattering)
-
         scatter(currentTime); 
 
         addAcceleration(electronSpheres, innerBoxSize, time, -1);
         addAcceleration(holeSpheres, innerBoxSize, time, 1);
 
+        //GENERATION ANIMATION
         generationAnim();
 
         //determines if distance of generated pair is far enough to allow recombinationn
         updateRecombinationStatus();
+        //RECOMBINATION ANIMATION
         recombinationAnim();
 
-
-
-
-    
         //check if a hole or electron needs to be supplied if they cross only if voltage level is negative
         if (voltage < 0) {
             sphereCrossed(electronSpheres, 'e');
@@ -444,8 +450,6 @@ function update() {
         if (negativeBatteryElements.length > 0) {
             negative_battery_anim();
         }
-
-    
 
         //UPDATE SPHERE POSITION
         updateSpherePosition();
