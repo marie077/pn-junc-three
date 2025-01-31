@@ -932,7 +932,7 @@ function addAcceleration(type, innerBoxSize, time, scalar) {
 }
 
 function updateSpherePosition() {
-    const minVelocity = 0.2;
+    const minVelocity = 0.9;
     const maxVelocity = 30;
     for (let sphere of [...electronSpheres, ...holeSpheres]) {
         const currVelocity = sphere.velocity.clone();
