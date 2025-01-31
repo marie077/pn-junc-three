@@ -7,12 +7,12 @@ import { TransformControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/
 import { OrbitControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/controls/OrbitControls.js';
 import { XRButton } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRButton.js';
 import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRControllerModelFactory.js'; 
-
+import { TextGeometry } from 'https://unpkg.com/three@0.163.0/examples/jsm/geometries/TextGeometry.js';
+import { FontLoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/FontLoader.js';
 //scene set up variables and window variables
 let container, camera, scene, renderer;
 let updateId;
 let voltageLevel;
-let voltageText;
 let cameraControls;
 let gui;
 const voltageControl = document.getElementById('voltage');
@@ -20,6 +20,9 @@ let minScalar = 0.22;
 let maxScalar = 0.88;
 let cube1;
 let orbitControls 
+
+
+
 
 //PN Junction Initial Variables
 let electronSpheres = [];
@@ -51,6 +54,18 @@ let innerCubeGeometry;
 let innerCubeMaterial;
 let innerCube;
 let voltage = 0.0;
+
+//voltage text variables
+let bevelEnabled = true,
+
+    font = undefined,
+
+    fontName = 'optimer', // helvetiker, optimer, gentilis, droid sans, droid serif
+    fontWeight = 'bold'; // normal bold
+
+let voltageText = "Voltage: " + voltage;
+let voltageTextMesh;
+let textgeometry;
 
 //boltzmann distribution variables
 let scalar = 0.5;
@@ -193,15 +208,24 @@ function init() {
     // window resize handler
     window.addEventListener( 'resize', onWindowResize);
 
-    //voltage text
-    const textGeometry = new THREE.TextGeometry('Voltage: 0.00', {
-        size: 5,
-        height: 1
-    });
-    const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    voltageText = new THREE.Mesh(textGeometry, textMaterial);
-    voltageText.position.set(-20, 80, 0); // Position it where visible in VR
-    scene.add(voltageText);
+
+    const loader = new FontLoader();
+
+    loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+
+        textgeometry = new TextGeometry( voltageText, {
+            font: font,
+            size: 5,
+            depth: 0.5
+        } );
+        const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        voltageTextMesh = new THREE.Mesh(textgeometry, textMaterial);
+        voltageTextMesh.position.set(-20, 60, 0); // Position it where visible in VR
+        scene.add(voltageTextMesh);
+    
+    } );
+
+   
 
     // Create an angular path
     const curvePath = new THREE.CurvePath();
@@ -377,11 +401,11 @@ function update() {
                         voltage = Math.max(-1.4, voltage - 0.01);
                     }
 
-                    if (voltageText) {
-                        voltageText.geometry.dispose();
-                        voltageText.geometry = new THREE.TextGeometry('Voltage: ' + voltage.toFixed(2), {
+                    if (voltageTextMesh) {
+                        voltageTextMesh.geometry.dispose();
+                        voltageTextMesh.geometry = new THREE.TextGeometry('Voltage: ' + voltage.toFixed(2), {
                             size: 5,
-                            height: 1
+                            depth: 0.5
                         });
                     }
                 });
