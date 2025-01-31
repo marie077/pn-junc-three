@@ -12,6 +12,7 @@ import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/exampl
 let container, camera, scene, renderer;
 let updateId;
 let voltageLevel;
+let voltageText;
 let cameraControls;
 let gui;
 const voltageControl = document.getElementById('voltage');
@@ -192,6 +193,16 @@ function init() {
     // window resize handler
     window.addEventListener( 'resize', onWindowResize);
 
+    //voltage text
+    const textGeometry = new THREE.TextGeometry('Voltage: 0.00', {
+        size: 5,
+        height: 1
+    });
+    const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    voltageText = new THREE.Mesh(textGeometry, textMaterial);
+    voltageText.position.set(-20, 80, 0); // Position it where visible in VR
+    scene.add(voltageText);
+
     // Create an angular path
     const curvePath = new THREE.CurvePath();
 
@@ -364,6 +375,14 @@ function update() {
                     } else if (state === controllerStates.leftController && state.triggerPressed) {
                         // Decrease voltage (min -1.4)
                         voltage = Math.max(-1.4, voltage - 0.01);
+                    }
+
+                    if (voltageText) {
+                        voltageText.geometry.dispose();
+                        voltageText.geometry = new THREE.TextGeometry('Voltage: ' + voltage.toFixed(2), {
+                            size: 5,
+                            height: 1
+                        });
                     }
                 });
             }
