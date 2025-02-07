@@ -66,7 +66,7 @@ let bevelEnabled = true,
 let voltageText = "Voltage: " + voltage;
 let voltageTextMesh;
 let textgeometry;
-const TRIGGER_THRESHOLD = 0.5;
+const TRIGGER_THRESHOLD = 0.1;
 
 //boltzmann distribution variables
 let scalar = 0.5;
@@ -399,10 +399,10 @@ function update() {
                         // Adjust voltage based on triggers
                         if (state === controllerStates.rightController &&  state.triggerPressed) {
                             // Increase voltage (max 0.4)
-                            voltage = Math.max(0.4, state.trigger + 0.01);
+                            voltage = Math.min(0.4, state.trigger);
                         } else if (state === controllerStates.leftController &&  state.triggerPressed) {
                             // Decrease voltage (min -1.4)
-                            voltage = Math.min(-1.4, state.trigger - 0.01);
+                            voltage = Math.max(-1.4, state.trigger);
                         }
 
                         if (voltageTextMesh) {
