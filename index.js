@@ -118,6 +118,8 @@ const vrSettings = {
 	rotationSpeed: 0.05
 };
 
+const loader = new FontLoader();
+
 init();
 
 update();
@@ -210,7 +212,7 @@ function init() {
     window.addEventListener( 'resize', onWindowResize);
 
 
-    const loader = new FontLoader();
+    
 
     loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
 
@@ -409,10 +411,19 @@ function update() {
 
         if (voltageTextMesh) {
             voltageTextMesh.geometry.dispose();
-            voltageTextMesh.geometry = new THREE.TextGeometry('Voltage: ' + voltage.toFixed(2), {
-                size: 5,
-                depth: 0.5
-            });
+            loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+
+                textgeometry = new TextGeometry( voltageText, {
+                    font: font,
+                    size: 5,
+                    depth: 0.5
+                } );
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                voltageTextMesh = new THREE.Mesh(textgeometry, textMaterial);
+                voltageTextMesh.position.set(-20, 60, 0); // Position it where visible in VR
+                scene.add(voltageTextMesh);
+            
+            } );
         }
 
         let currentTime = performance.now();
