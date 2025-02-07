@@ -215,7 +215,7 @@ function init() {
     
 
     loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
-
+        loader._font = font;
         textgeometry = new TextGeometry( voltageText, {
             font: font,
             size: 5,
@@ -400,31 +400,37 @@ function update() {
                         if (state === controllerStates.rightController &&  state.triggerPressed) {
                             // Increase voltage (max 0.4)
                             voltage = Math.min(0.4, state.trigger + 0.01);
+                            
+                            if (voltageTextMesh) {
+                                voltageTextMesh.geometry.dispose();
+                                textgeometry = new TextGeometry('Voltage: ' + voltage.toFixed(2), {
+                                    font: loader._font, // Use cached font
+                                    size: 5,
+                                    depth: 0.5
+                                });
+                                voltageTextMesh.geometry = textgeometry;    
+                            }
                         } else if (state === controllerStates.leftController &&  state.triggerPressed) {
                             // Decrease voltage (min -1.4)
                             voltage = Math.max(-1.4, state.trigger - 0.01);
+                            
+                            if (voltageTextMesh) {
+                                voltageTextMesh.geometry.dispose();
+                                textgeometry = new TextGeometry('Voltage: ' + voltage.toFixed(2), {
+                                    font: loader._font, // Use cached font
+                                    size: 5,
+                                    depth: 0.5
+                                });
+                                voltageTextMesh.geometry = textgeometry;    
+                            }
                         }
+
                     }
                 });
             }
         }
 
-        if (voltageTextMesh) {
-            voltageTextMesh.geometry.dispose();
-            loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
-
-                textgeometry = new TextGeometry( voltageText, {
-                    font: font,
-                    size: 5,
-                    depth: 0.5
-                } );
-                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                voltageTextMesh = new THREE.Mesh(textgeometry, textMaterial);
-                voltageTextMesh.position.set(-20, 60, 0); // Position it where visible in VR
-                scene.add(voltageTextMesh);
-            
-            } );
-        }
+    
 
         let currentTime = performance.now();
         let time = clock.getDelta()/15;
