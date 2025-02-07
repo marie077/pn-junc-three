@@ -393,7 +393,7 @@ function update() {
                         state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
                 
                         // Get trigger values (usually first button in buttons array)
-                        state.trigger = Math.abs(inputSource.gamepad.axes[0]) || 0;
+                        state.trigger = Math.abs(inputSource.gamepad.buttons[0]) || 0;
                         state.triggerPressed = state.trigger > TRIGGER_THRESHOLD;
                         
                         // Adjust voltage based on triggers
