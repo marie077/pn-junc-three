@@ -400,29 +400,19 @@ function update() {
                         if (state === controllerStates.rightController &&  state.triggerPressed) {
                             // Increase voltage (max 0.4)
                             voltage = Math.min(0.4, state.trigger + 0.01);
-                            
-                            if (voltageTextMesh) {
-                                voltageTextMesh.geometry.dispose();
-                                textgeometry = new TextGeometry('Voltage: ' + voltage.toFixed(2), {
-                                    font: loader._font, // Use cached font
-                                    size: 5,
-                                    depth: 0.5
-                                });
-                                voltageTextMesh.geometry = textgeometry;    
-                            }
                         } else if (state === controllerStates.leftController &&  state.triggerPressed) {
                             // Decrease voltage (min -1.4)
                             voltage = Math.max(-1.4, state.trigger - 0.01);
-                            
-                            if (voltageTextMesh) {
-                                voltageTextMesh.geometry.dispose();
-                                textgeometry = new TextGeometry('Voltage: ' + voltage.toFixed(2), {
-                                    font: loader._font, // Use cached font
-                                    size: 5,
-                                    depth: 0.5
-                                });
-                                voltageTextMesh.geometry = textgeometry;    
-                            }
+                        }
+
+                        if (voltageTextMesh) {
+                            voltageTextMesh.geometry.dispose();
+                            textgeometry = new TextGeometry('Voltage: ' + voltage.toFixed(2), {
+                                font: loader._font, // Use cached font
+                                size: 5,
+                                depth: 0.5
+                            });
+                            voltageTextMesh.geometry = textgeometry;    
                         }
 
                     }
