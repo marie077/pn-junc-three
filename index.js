@@ -385,32 +385,36 @@ function update() {
                         controllerStates.leftController : 
                         controllerStates.rightController;
 
-                    // Get thumbstick values (using axes 2 and 3 for Oculus controllers)
-                    state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
-                    state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
-               
-                            // Get trigger values (usually first button in buttons array)
-                    state.trigger = inputSource.gamepad.axes[0] || 0;
-
-                    // Adjust voltage based on triggers
-                    if (state === controllerStates.rightController && Math.abs(state.trigger) > TRIGGER_THRESHOLD) {
-                        // Increase voltage (max 0.4)
-                        voltage = Math.min(0.4, Math.abs(state.trigger) + 0.01);
-                    } else if (state === controllerStates.leftController && Math.abs(state.trigger) > TRIGGER_THRESHOLD) {
-                        // Decrease voltage (min -1.4)
-                        voltage = Math.max(-1.4, Math.abs(state.trigger) - 0.01);
-                    }
-
-                    if (voltageTextMesh) {
-                        voltageTextMesh.geometry.dispose();
-                        voltageTextMesh.geometry = new THREE.TextGeometry('Voltage: ' + voltage.toFixed(2), {
-                            size: 5,
-                            depth: 0.5
-                        });
+                    if (inputSource.gamepad.axes.length >= 4) {
+                        // Get thumbstick values (using axes 2 and 3 for Oculus controllers)
+                        state.thumbstick.x = inputSource.gamepad.axes[2] || 0;
+                        state.thumbstick.y = inputSource.gamepad.axes[3] || 0;
+                
+                        // Get trigger values (usually first button in buttons array)
+                        state.trigger = Math.abs(inputSource.gamepad.axes[0]) || 0;
+                        state.triggerPressed = state.trigger > TRIGGER_THRESHOLD;
+                        
+                        // Adjust voltage based on triggers
+                        if (state === controllerStates.rightController &&  state.triggerPressed) {
+                            // Increase voltage (max 0.4)
+                            voltage = Math.min(0.4, state.trigger + 0.01);
+                        } else if (state === controllerStates.leftController &&  state.triggerPressed) {
+                            // Decrease voltage (min -1.4)
+                            voltage = Math.max(-1.4, state.trigger - 0.01);
+                        }
                     }
                 });
             }
         }
+
+        if (voltageTextMesh) {
+            voltageTextMesh.geometry.dispose();
+            voltageTextMesh.geometry = new THREE.TextGeometry('Voltage: ' + voltage.toFixed(2), {
+                size: 5,
+                depth: 0.5
+            });
+        }
+
         let currentTime = performance.now();
         let time = clock.getDelta()/15;
         scene.remove(innerCube);
@@ -585,10 +589,10 @@ async function initXR(frame) {
     const xrSession = await navigator.xr.requestSession('immersive-vr');
 
     const inputSource = xrSession.inputSources[0];
-	controllerGrip1 = xrSession.requestReferebceSpace(inputSource.targetRaySpace);
+	controllerGrip1 = xrSession.requestReferenceSpace('local');
 	
 	//debug
-	console.log("number of input sources:" + inputSources.length);
+	console.log("number of input sources:" + inputSource.length);
 
     
 }
@@ -971,8 +975,8 @@ function recombinationAnim() {
                         electronSpheres[i].lerpProgress = 0;
                         holeSpheres[j].lerpProgress = 0;
                         
-                        electronSpheres[i].object.material.color.set(new THREE.Color(0x05D9FF));
-                        holeSpheres[j].object.material.color.set(new THREE.Color(0xff9cb0));
+                        // electronSpheres[i].object.material.color.set(new THREE.Color(0x05D9FF));
+                        // holeSpheres[j].object.material.color.set(new THREE.Color(0xff9cb0));
                         // Set velocity to zero during pause
                         electronSpheres[i].velocity.set(0, 0, 0);
                         holeSpheres[j].velocity.set(0, 0, 0);
@@ -1030,6 +1034,7 @@ function recombinationAnim() {
 				    sphere.orb.scale.setScalar(sphere.orb.gradualVal);
 					sphere.orb.gradualVal -= 0.05;
 
+
                     // Update opacity
                     sphere.orb.material.opacity = 0.3 * Math.max(0, sphere.orb.gradualVal);  
                     // console.log("orb opacity value:", sphere.orb.material.opacity );
@@ -1039,9 +1044,13 @@ function recombinationAnim() {
                         sphere.orb.material.dispose();
                         sphere.orb = null; // Clear the reference to avoid reuse
                         console.log("orb removed for recombination");
-                    } else {
+                    } else if (sphere.orb.material.opacity <= 0.1) {
+                        //change colors once orb exists
+                        sphere.object.material.color.set(new THREE.Color(0x05D9FF));
+                        sphere.lerpPartner.object.material.color.set(new THREE.Color(0xff9cb0));
+                    }  else {
                         console.log("orb not removed yet");
-                    }                
+                    }              
                 } else {
                     console.log("orb does not exist");
                 }
