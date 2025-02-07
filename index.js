@@ -378,6 +378,7 @@ function update() {
 		if (frame) {
             const session = frame.session;
             if (session) {
+                let lastTriggerState = {left: false, right: false};
                 const inputSources = Array.from(session.inputSources);
                 
                 inputSources.forEach(inputSource => {
@@ -397,12 +398,14 @@ function update() {
                         state.triggerPressed = state.trigger > TRIGGER_THRESHOLD;
                         
                         // Adjust voltage based on triggers
-                        if (state === controllerStates.rightController &&  state.triggerPressed) {
+                        if (state === controllerStates.rightController &&  state.triggerPressed && !lastTriggerState.right) {
                             // Increase voltage (max 0.4)
-                            voltage = Math.min(0.4, state.trigger);
-                        } else if (state === controllerStates.leftController &&  state.triggerPressed) {
+                            voltage = Math.min(0.4, voltage + 0.1);
+                            lastTriggerState.right = state.triggerPressed;
+                        } else if (state === controllerStates.leftController &&  state.triggerPressed && !lastTriggerState.left) {
                             // Decrease voltage (min -1.4)
-                            voltage = Math.max(-1.4, state.trigger);
+                            voltage = Math.max(-1.4, voltage - 0.1);
+                            lastTriggerState.left = state.triggerPressed;
                         }
 
                         if (voltageTextMesh) {
