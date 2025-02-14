@@ -148,19 +148,26 @@ function init() {
     container = document.getElementById('three-container-scene-1');
     //scene
     scene = new THREE.Scene();
-	scene.background = new THREE.Color(0x000000);
+	scene.background = new THREE.Color(0x121212);
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
-    camera.position.z = 116;
+    camera.position.z = 150;
     //renderer
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.xr.enabled = true;
     renderer.xr.setReferenceSpaceType('local-floor');
+    initXR();
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
 	dolly = new THREE.Object3D();
 	setUpVRControls();
+
+     // Add explicit size check
+     if (!container) {
+        console.error('Container not found');
+        return;
+    }
 	
 		
 	//lighting
@@ -170,7 +177,7 @@ function init() {
     // GUI
     gui = new dat.GUI();
     cameraControls = {
-        translateZ : 116,
+        translateZ : 150,
         translateX: 0,
         rotateY: MathUtils.degToRad(0),
     };

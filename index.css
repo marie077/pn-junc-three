@@ -32,27 +32,30 @@ body {
     font-size: 1rem;
   }
 
-/* #three-container {
-	width: 100%;
-	height: 100%;
-	margin-left: auto;
-	margin-right: 2em;
-	padding: 1em;
+#three-container-scene-1 {
 	position: relative;
-	overflow: hidden;
-} */
+	padding: 5.5em;
+}
 
 @media (min-width: 1200px) {
-	.container, .container-lg, .container-md, .container-sm, .container-xl {
+	.container {
 	  max-width: 1140px;
 	}
-}
+	#three-container-scene-1 {
+		max-width: 1140px;
+		height: 600px; 
+	}
+} 
 
 @media (min-width: 992px) {
 	.col-lg-12 {
 	  -ms-flex: 0 0 100%;
 	  flex: 0 0 100%;
 	  max-width: 100%;
+	}
+	#three-container-scene-1 {
+		max-width: 90%;
+		height: 600px; 
 	}
 }
 
@@ -77,42 +80,46 @@ body {
 	  -ms-flex: 0 0 33.333333%;
 	  flex: 0 0 33.333333%;
 	  max-width: 33.333333%;
+	  margin-left: 2em;
 	}
-}
+} 
 
 .container {
+	display: flex;
 	width: 100%;
+	padding-top: 8em;
 	padding-right: 15px;
 	padding-left: 15px;
-	margin-right: auto;
-	margin-left: auto;
-  }
+	margin-right: 5em;
+	margin-left: 5em;
+	color:#fff;
+
+	min-height: 600px;
+    position: relative;
+}
+
+.container2 {
+	display: flex;
+	width: 100%;
+	padding-top: 8em;
+	padding-right: 15px;
+	padding-left: 15px;
+	margin-right: 5em;
+	margin-left: 5em;
+	color:#fff;
+
+	min-height: 600px;
+    position: relative;
+}
+
 
 .pn-junction {
-	margin-top: 200px;
 	opacity: 0;
 	transform: translateY(50px);
 	transition: all 0.3s ease-out;
 }
 
-.pn-junction h1 {
-	font-family: Agency FB;
-	font-style: normal;
-	font-weight: normal;
-	font-size: 36px;
-	line-height: 72px;
-	color: #FFF7AE;
-  }
 
-  .pn-junction p {
-	margin-top: 30px;
-	font-family: Bai Jamjuree;
-	font-style: normal;
-	font-weight: normal;
-	font-size: 18px;
-	line-height: 27px;
-	color: #FFFFFF;
-  }
 
 .fade-in {
 	opacity: 1 !important;
@@ -128,8 +135,9 @@ body {
 	margin-left: -15px;
   }
 
+
 .title-row {
-	margin-top: 300px;
+	margin-top: 150px;
 }
 
 .title-row h1 {
@@ -151,6 +159,10 @@ body {
 	font-size: 20px;
 	line-height: 30px;
 	color: #FFFFFF;
+	text-align: center;
+  }
+
+  .nav-bar {
 	text-align: center;
   }
 
