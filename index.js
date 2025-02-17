@@ -127,7 +127,7 @@ update();
 setInterval(() => {
     //creates hole/electron pair and adds to generatedPairs array
     generatePair();
-}, 3000);
+}, 2000);
 
  
 function init() {
