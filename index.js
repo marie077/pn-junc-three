@@ -455,13 +455,14 @@ function update() {
 
         let origin_x = 0;
         // ARROW IMPLEMENTATION
-        if (voltage > 0) {
-            origin_x = innerBoxSize/2;
-        } else if (voltage < 0) {
-        // origin_x = innerBoxSize/2 + 30;
-            origin_x = innerBoxSize;
-        }
-        const origin = new THREE.Vector3(origin_x, 70, 0 );
+        // if (voltage > 0) {
+        //     origin_x = innerBoxSize;
+        // } else if (voltage < 0) {
+        // // origin_x = innerBoxSize/2 + 30;
+        //     origin_x = innerBoxSize;
+        // }
+        let origin = new THREE.Vector3(innerBoxSize/2, 0, 0 );
+        console.log(origin);
         const length = innerBoxSize;
         const hex = 0xffff00;
 
@@ -1508,21 +1509,10 @@ function createSphereAt(position, sphereColor, transparency) {
 }
 
 function updateArrow(origin, length, hex) {
-    let headLength = innerBoxSize/4;
-    if (voltage === 0) {
-        scene.remove(arrowNegative);
-        arrowNegative = null;
-    } 
-    if (voltage < 0 || voltage > 0) {
-        if (!arrowNegative) {
-            //voltage = Math.abs(voltage);
-            arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), origin, length, hex, headLength);
-            scene.add(arrowNegative);
-        } else {
-            arrowNegative.setLength(length, headLength); // Update arrow length as the innerBoxSize changes
-            
-        }
-    } 
+    let headLength = innerBoxSize/4; //size of arrow head
+    scene.remove(arrowNegative);
+    arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), origin, length, hex, headLength);
+    scene.add(arrowNegative);
 }
 
 // function createTrapezoidGeometry(topWidth, bottomWidth, height, depth) {
