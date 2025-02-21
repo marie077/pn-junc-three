@@ -188,8 +188,7 @@ function init() {
 
     document.getElementById("myText").innerHTML = 0;
 
-
-    const resetButton = { 'Reset Cube': resetGUI };
+    // moved to update
 
     gui.add(cameraControls, 'translateX', -100, 100).onChange(() => {
         camera.position.x = cameraControls.translateX;
@@ -202,17 +201,21 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    // gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
-    //     voltage = voltageLevel.x;
-    // });
+    const resetButton = { 'Reset Cube': resetGUI };
+
+    // Add a button to reset GUI controls
+    gui.add(resetButton, 'Reset Cube');
+
+    
+
+
     voltageControl.addEventListener('input', () => {
         const voltageLevel = parseFloat(voltageControl.value);
         voltage = voltageLevel;
         document.getElementById("myText").innerHTML = voltage;
      });
 
-    // Add a button to reset GUI controls
-    gui.add(resetButton, 'Reset Cube');
+ 
     
 
     // window resize handler
@@ -382,6 +385,7 @@ function init() {
 function update() {
     renderer.setAnimationLoop( function(timestamp, frame) {
         // updateId = requestAnimationFrame( update );
+        scene.add(gui);
 		if (frame) {
             const session = frame.session;
             if (session) {
@@ -453,16 +457,7 @@ function update() {
         innerCube.position.set(0, 0, 0);
         scene.add(innerCube);
 
-        let origin_x = 0;
-        // ARROW IMPLEMENTATION
-        // if (voltage > 0) {
-        //     origin_x = innerBoxSize;
-        // } else if (voltage < 0) {
-        // // origin_x = innerBoxSize/2 + 30;
-        //     origin_x = innerBoxSize;
-        // }
         let origin = new THREE.Vector3(innerBoxSize/2, 0, 0 );
-        console.log(origin);
         const length = innerBoxSize;
         const hex = 0xffff00;
 
@@ -1514,50 +1509,6 @@ function updateArrow(origin, length, hex) {
     arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), origin, length, hex, headLength);
     scene.add(arrowNegative);
 }
-
-// function createTrapezoidGeometry(topWidth, bottomWidth, height, depth) {
-//     const geometry = new THREE.BufferGeometry();
-  
-//     const vertices = [
-//       // Top face
-//       -topWidth / 2, height, -depth / 2,
-//       topWidth / 2, height, -depth / 2,
-//       topWidth / 2, height, depth / 2,
-//       -topWidth / 2, height, depth / 2,
-  
-//       // Bottom face
-//       -bottomWidth / 2, 0, -depth / 2,
-//       bottomWidth / 2, 0, -depth / 2,
-//       bottomWidth / 2, 0, depth / 2,
-//       -bottomWidth / 2, 0, depth / 2,
-  
-//       // Side faces
-//       -topWidth / 2, height, -depth / 2,
-//       -bottomWidth / 2, 0, -depth / 2,
-//       -bottomWidth / 2, 0, depth / 2,
-//       -topWidth / 2, height, depth / 2,
-  
-//       topWidth / 2, height, -depth / 2,
-//       bottomWidth / 2, 0, -depth / 2,
-//       bottomWidth / 2, 0, depth / 2,
-//       topWidth / 2, height, depth / 2
-//     ];
-  
-//     const indices = [
-//       0, 1, 2, 2, 3, 0, // Top face
-//       4, 5, 6, 6, 7, 4, // Bottom face
-//       3, 2, 6, 6, 7, 3, // Front face
-//       1, 5, 6, 6, 2, 1, // Right face
-//       0, 3, 7, 7, 4, 0, // Left face
-//       5, 1, 0, 0, 4, 5  // Back face
-//     ];
-  
-//     geometry.setIndex(indices);
-//     geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
-//     geometry.computeVertexNormals();
-  
-//     return geometry;
-//   }
 
 function box( width, height, depth ) {
 
