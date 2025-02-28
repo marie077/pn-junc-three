@@ -385,7 +385,7 @@ function init() {
 function update() {
     renderer.setAnimationLoop( function(timestamp, frame) {
         // updateId = requestAnimationFrame( update );
-        scene.add(gui);
+        
 		if (frame) {
             const session = frame.session;
             if (session) {
@@ -595,19 +595,26 @@ function setUpVRControls() {
     dolly.add(controllerGrip2);
 }
 
-// Handle controller input
-async function initXR(frame) {
-
-
+async function initXR() {
     const xrSession = await navigator.xr.requestSession('immersive-vr');
 
-    const inputSource = xrSession.inputSources[0];
-	controllerGrip1 = xrSession.requestReferenceSpace('local');
-	
-	//debug
-	console.log("number of input sources:" + inputSource.length);
+    // Ensure the session has a reference space
+    const xrRefSpace = await xrSession.requestReferenceSpace('local');
 
-    
+    // Setup WebGL rendering for XR
+    const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true });
+    xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
+
+    // Debug: Check the number of input sources
+    console.log("Number of input sources: " + xrSession.inputSources.length);
+
+    function onXRFrame(time, frame) {
+        let session = frame.session;
+        session.requestAnimationFrame(onXRFrame);
+        // Your rendering code goes here
+    }
+
+    xrSession.requestAnimationFrame(onXRFrame);
 }
 
 function updateCamera() {
