@@ -595,27 +595,36 @@ function setUpVRControls() {
     dolly.add(controllerGrip2);
 }
 
+// Handle controller input
+// Handle controller input
 async function initXR() {
-    const xrSession = await navigator.xr.requestSession('immersive-vr');
+    try {
+        // Request an immersive VR session
+        xrSession = await navigator.xr.requestSession('immersive-vr');
 
-    // Ensure the session has a reference space
-    const xrRefSpace = await xrSession.requestReferenceSpace('local');
+        // Request a proper reference space
+        const xrRefSpace = await xrSession.requestReferenceSpace('local-floor');
 
-    // Setup WebGL rendering for XR
-    const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true });
-    xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
+        // Set up WebGL rendering for XR
+        const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true });
+        xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
 
-    // Debug: Check the number of input sources
-    console.log("Number of input sources: " + xrSession.inputSources.length);
+        // Debugging: Ensure session is properly created
+        console.log("XR Session started:", xrSession);
+        console.log("Reference Space:", xrRefSpace);
 
-    function onXRFrame(time, frame) {
-        let session = frame.session;
-        session.requestAnimationFrame(onXRFrame);
-        // Your rendering code goes here
+        // Check input sources
+        if (xrSession.inputSources.length > 0) {
+            console.log("Number of input sources:", xrSession.inputSources.length);
+        } else {
+            console.warn("No input sources detected yet.");
+        }
+
+    } catch (error) {
+        console.error("Error initializing XR session:", error);
     }
-
-    xrSession.requestAnimationFrame(onXRFrame);
 }
+
 
 function updateCamera() {
     if (!renderer.xr.isPresenting) return;
