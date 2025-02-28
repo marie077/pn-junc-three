@@ -152,14 +152,16 @@ function init() {
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 150;
+
     //renderer
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.xr.enabled = true;
     renderer.xr.setReferenceSpaceType('local-floor');
     initXR();
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
+
 	dolly = new THREE.Object3D();
 	setUpVRControls();
 
@@ -596,7 +598,6 @@ function setUpVRControls() {
 }
 
 // Handle controller input
-// Handle controller input
 async function initXR() {
     try {
         // Request an immersive VR session
@@ -607,8 +608,10 @@ async function initXR() {
 
         // Set up WebGL rendering for XR
         const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true });
-        xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
-
+        xrSession.updateRenderState({
+            baseLayer: new XRWebGLLayer(xrSession, renderer.getContext())
+          });
+          
         // Debugging: Ensure session is properly created
         console.log("XR Session started:", xrSession);
         console.log("Reference Space:", xrRefSpace);
