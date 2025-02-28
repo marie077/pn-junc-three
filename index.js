@@ -151,15 +151,18 @@ function init() {
     scene = new THREE.Scene();
 	// scene.background = new THREE.Color(0x121212);
     new RGBELoader()
-					.setPath( 'assets/' )
-					.load( 'moonless_golf_1k.hdr', function ( texture ) {
+    .setPath('assets/')
+    .load('moonless_golf_1k.hdr', function (texture) {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        texture.format = THREE.RGBAFormat; // Ensure it’s fully opaque
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.generateMipmaps = false;
+        
+        scene.environment = texture; // Use HDR for lighting
+        scene.background = new THREE.Color(0x000000); // Keep background solid black
+    });
 
-						texture.mapping = THREE.EquirectangularReflectionMapping;
-
-						scene.background = texture;
-						scene.environment = texture;
-
-					} );
 
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
