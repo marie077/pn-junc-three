@@ -6,6 +6,7 @@ import { Vector3 } from 'https://unpkg.com/three@0.163.0/src/math/Vector3.js';
 import { TransformControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/controls/TransformControls.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/controls/OrbitControls.js';
 import { XRButton } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRButton.js';
+import { RGBELoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/RGBELoader.js';
 import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRControllerModelFactory.js'; 
 import { TextGeometry } from 'https://unpkg.com/three@0.163.0/examples/jsm/geometries/TextGeometry.js';
 import { FontLoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/FontLoader.js';
@@ -148,7 +149,16 @@ function init() {
     container = document.getElementById('three-container-scene-1');
     //scene
     scene = new THREE.Scene();
-	scene.background = new THREE.Color(0x121212);
+	new RGBELoader()
+					.setPath( 'assets/' )
+					.load( 'moonless_golf_1k.hdr', function ( texture ) {
+
+						texture.mapping = THREE.EquirectangularReflectionMapping;
+
+						scene.background = texture;
+						scene.environment = texture;
+
+					} );
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 150;
@@ -168,7 +178,7 @@ function init() {
     // initXR();
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
-    
+
 	dolly = new THREE.Object3D();
 	setUpVRControls();
 
