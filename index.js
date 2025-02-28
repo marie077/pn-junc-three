@@ -165,17 +165,17 @@ function init() {
     //renderer
 
 
-    renderer = new THREE.WebGLRenderer( { antialias: true } );
-    renderer.autoClear = false;
-    renderer.setPixelRatio( window.devicePixelRatio );
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.xr.enabled = true;
-
-    // renderer = new THREE.WebGLRenderer();
+    // renderer = new THREE.WebGLRenderer( { antialias: true } );
+    // renderer.autoClear = false;
+    // renderer.setPixelRatio( window.devicePixelRatio );
     // renderer.setSize(container.clientWidth, container.clientHeight);
     // renderer.xr.enabled = true;
-    // renderer.xr.setReferenceSpaceType('local-floor');
-    // initXR();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.xr.enabled = true;
+    renderer.xr.setReferenceSpaceType('local-floor');
+    initXR();
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
 
