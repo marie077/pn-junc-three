@@ -152,16 +152,23 @@ function init() {
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 150;
-
     //renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+
+
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.autoClear = false;
+    renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.xr.enabled = true;
-    renderer.xr.setReferenceSpaceType('local-floor');
-    initXR();
+
+    // renderer = new THREE.WebGLRenderer();
+    // renderer.setSize(container.clientWidth, container.clientHeight);
+    // renderer.xr.enabled = true;
+    // renderer.xr.setReferenceSpaceType('local-floor');
+    // initXR();
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
-
+    
 	dolly = new THREE.Object3D();
 	setUpVRControls();
 
@@ -385,7 +392,7 @@ function init() {
 }
 
 function update() {
-    renderer.setAnimationLoop( function(timestamp, frame) {
+    renderer.setAnimationLoop( function(frame) {
         // updateId = requestAnimationFrame( update );
         
 		if (frame) {
@@ -598,6 +605,7 @@ function setUpVRControls() {
 }
 
 // Handle controller input
+
 async function initXR() {
     try {
         // Request an immersive VR session
@@ -608,10 +616,8 @@ async function initXR() {
 
         // Set up WebGL rendering for XR
         const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true });
-        xrSession.updateRenderState({
-            baseLayer: new XRWebGLLayer(xrSession, renderer.getContext())
-          });
-          
+        xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
+
         // Debugging: Ensure session is properly created
         console.log("XR Session started:", xrSession);
         console.log("Reference Space:", xrRefSpace);
