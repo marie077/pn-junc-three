@@ -160,10 +160,10 @@ function init() {
         texture.generateMipmaps = false;
         
         scene.environment = texture; // Use HDR for lighting
-        scene.background = new THREE.Color(0x000000); // Keep background solid black
+        scene.background = texture; // Keep background solid black
     });
 
-    document.body.style.backgroundColor = "black"; // Extra security for black bg
+    // document.body.style.backgroundColor = "black"; // Extra security for black bg
 
 
     //camera
