@@ -163,12 +163,15 @@ function init() {
         scene.background = new THREE.Color(0x000000); // Keep background solid black
     });
 
+    document.body.style.backgroundColor = "black"; // Extra security for black bg
+
 
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 150;
     //renderer
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({ alpha: false });
+
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.xr.enabled = true;
     renderer.xr.setReferenceSpaceType('local-floor');
