@@ -6,10 +6,10 @@ import { Vector3 } from 'https://unpkg.com/three@0.163.0/src/math/Vector3.js';
 import { TransformControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/controls/TransformControls.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.163.0/examples/jsm/controls/OrbitControls.js';
 import { XRButton } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRButton.js';
-import { RGBELoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/RGBELoader.js';
 import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRControllerModelFactory.js'; 
 import { TextGeometry } from 'https://unpkg.com/three@0.163.0/examples/jsm/geometries/TextGeometry.js';
 import { FontLoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/FontLoader.js';
+import { RGBELoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/RGBELoader.js';
 //scene set up variables and window variables
 let container, camera, scene, renderer;
 let updateId;
@@ -149,7 +149,8 @@ function init() {
     container = document.getElementById('three-container-scene-1');
     //scene
     scene = new THREE.Scene();
-	new RGBELoader()
+	// scene.background = new THREE.Color(0x121212);
+    new RGBELoader()
 					.setPath( 'assets/' )
 					.load( 'moonless_golf_1k.hdr', function ( texture ) {
 
@@ -159,18 +160,11 @@ function init() {
 						scene.environment = texture;
 
 					} );
+
     //camera
     camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
     camera.position.z = 150;
     //renderer
-
-
-    // renderer = new THREE.WebGLRenderer( { antialias: true } );
-    // renderer.autoClear = false;
-    // renderer.setPixelRatio( window.devicePixelRatio );
-    // renderer.setSize(container.clientWidth, container.clientHeight);
-    // renderer.xr.enabled = true;
-
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.xr.enabled = true;
@@ -178,7 +172,6 @@ function init() {
     initXR();
     container.appendChild( renderer.domElement );
 	container.appendChild(XRButton.createButton(renderer));
-
 	dolly = new THREE.Object3D();
 	setUpVRControls();
 
@@ -402,7 +395,7 @@ function init() {
 }
 
 function update() {
-    renderer.setAnimationLoop( function(frame) {
+    renderer.setAnimationLoop( function(timestamp, frame) {
         // updateId = requestAnimationFrame( update );
         
 		if (frame) {
@@ -615,35 +608,19 @@ function setUpVRControls() {
 }
 
 // Handle controller input
+async function initXR(frame) {
 
-async function initXR() {
-    try {
-        // Request an immersive VR session
-        xrSession = await navigator.xr.requestSession('immersive-vr');
 
-        // Request a proper reference space
-        const xrRefSpace = await xrSession.requestReferenceSpace('local-floor');
+    const xrSession = await navigator.xr.requestSession('immersive-vr');
 
-        // Set up WebGL rendering for XR
-        const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true });
-        xrSession.updateRenderState({ baseLayer: new XRWebGLLayer(xrSession, gl) });
+    const inputSource = xrSession.inputSources[0];
+	controllerGrip1 = xrSession.requestReferenceSpace('local');
+	
+	//debug
+	console.log("number of input sources:" + inputSource.length);
 
-        // Debugging: Ensure session is properly created
-        console.log("XR Session started:", xrSession);
-        console.log("Reference Space:", xrRefSpace);
-
-        // Check input sources
-        if (xrSession.inputSources.length > 0) {
-            console.log("Number of input sources:", xrSession.inputSources.length);
-        } else {
-            console.warn("No input sources detected yet.");
-        }
-
-    } catch (error) {
-        console.error("Error initializing XR session:", error);
-    }
+    
 }
-
 
 function updateCamera() {
     if (!renderer.xr.isPresenting) return;
