@@ -1,10 +1,10 @@
-name: Deploy Multiple Branches to GitHub Pages
+name: Deploy Vite Project
 
 on:
   push:
     branches:
       - main
-      - feature-branch  # Add any other branches you want to deploy
+      - feature-branch
 
 jobs:
   deploy:
@@ -14,20 +14,24 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: |
-          npm install  # Adjust if using another build tool (Yarn, etc.)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18  # Change based on your project's requirement
 
-      - name: Build Project
-        run: |
-          npm run build  # Adjust if using a different build command
-          mkdir -p deployment
-          mv build deployment/${{ github.ref_name }}
+      - name: Install Dependencies
+        run: npm ci  # Ensures clean install
+
+      - name: Fix Permissions
+        run: chmod +x node_modules/.bin/vite
+
+      - name: Build Vite Project
+        run: npx vite build  # Ensures correct execution
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./deployment
+          publish_dir: ./dist  # Vite outputs to 'dist'
           destination_dir: ${{ github.ref_name }}
-          keep_files: true  # Preserve other branch builds
+          keep_files: true
