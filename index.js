@@ -11,7 +11,7 @@ import { TextGeometry } from 'https://unpkg.com/three@0.163.0/examples/jsm/geome
 import { FontLoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/FontLoader.js';
 import { RGBELoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/RGBELoader.js';
 
-const hdrFile = "/pn-junc-three/moonless_golf_1k.hdr";
+const hdrFile = "/assets/moonless_golf_1k.hdr";
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
