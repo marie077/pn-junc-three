@@ -10,6 +10,8 @@ import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/exampl
 import { TextGeometry } from 'https://unpkg.com/three@0.163.0/examples/jsm/geometries/TextGeometry.js';
 import { FontLoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/FontLoader.js';
 import { RGBELoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/RGBELoader.js';
+
+
 //scene set up variables and window variables
 let container, camera, scene, renderer;
 let updateId;
