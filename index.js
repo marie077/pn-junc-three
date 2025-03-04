@@ -244,19 +244,19 @@ function init() {
 
     
 
-    loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
-        loader._font = font;
-        textgeometry = new TextGeometry( voltageText, {
-            font: font,
-            size: 5,
-            depth: 0.5
-        } );
-        const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        voltageTextMesh = new THREE.Mesh(textgeometry, textMaterial);
-        voltageTextMesh.position.set(-20, 60, 0); // Position it where visible in VR
-        scene.add(voltageTextMesh);
+    // loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+    //     loader._font = font;
+    //     textgeometry = new TextGeometry( voltageText, {
+    //         font: font,
+    //         size: 5,
+    //         depth: 0.5
+    //     } );
+    //     const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    //     voltageTextMesh = new THREE.Mesh(textgeometry, textMaterial);
+    //     voltageTextMesh.position.set(-20, 60, 0); // Position it where visible in VR
+    //     scene.add(voltageTextMesh);
     
-    } );
+    // } );
 
    
 
@@ -439,15 +439,15 @@ function update() {
                             lastTriggerState.left = state.triggerPressed;
                         }
 
-                        if (voltageTextMesh) {
-                            voltageTextMesh.geometry.dispose();
-                            textgeometry = new TextGeometry('Voltage: ' + voltage.toFixed(2), {
-                                font: loader._font, // Use cached font
-                                size: 5,
-                                depth: 0.5
-                            });
-                            voltageTextMesh.geometry = textgeometry;    
-                        }
+                        // if (voltageTextMesh) {
+                        //     voltageTextMesh.geometry.dispose();
+                        //     textgeometry = new TextGeometry('Voltage: ' + voltage.toFixed(2), {
+                        //         font: loader._font, // Use cached font
+                        //         size: 5,
+                        //         depth: 0.5
+                        //     });
+                        //     voltageTextMesh.geometry = textgeometry;    
+                        // }
 
                     }
                 });
