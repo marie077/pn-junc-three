@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>PN Junction</title>
+		<style>
+			body { margin: 0; }
+		</style>
+
+		<script type="importmap">
+			{
+			  "imports": {
+				"three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+				"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+			  }
+			}
+		  </script>
+		<script type="module" crossorigin src="/pn-junc-three//assets/index-CYuvRWII.js"></script>
+		<link rel="stylesheet" crossorigin href="/pn-junc-three//assets/index-Dnae4K00.css">
+	</head>
+	
+	<body id="body_parent" class="noselect">
+		<div class="row title-row">
+			<h1 class="col-lg-12"> PN-Junction: 3D visualization </h1>
+			<div class="col-lg-1"></div>
+			<p class="col-lg-10"> A P-N junction is one of the most important semiconductor devices with applications ranging from rectifiers to solar cells. It is also an important part of more complex devices such as transistors. In this chapter you get to play with a 3D visualization of PN Junction. If you have a compatible Quest VR headset, try it out by selecting the XR button! </p>
+			<div class="col-lg-1"></div>
+		</div>
+		<!-- <nav class="nav-bar">
+			<a href="./index.html" id="scene1">PN-JUNCTION</a>
+			<br><br>
+			<a href="./solarCellScene.html" id="scene2">PN-JUNCTION + Solar Cell</a>
+		</nav> -->
+		<div class="container">
+			<div class="col-lg-4"> 
+					<h1> Intro to PN-Junction </h1>
+					<p> Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </p>	
+					<div id="voltage-range-container">
+						<label for="voltage-range" style ="color:white; padding: 3em" for="voltage">Voltage Level:</label>
+						<input autocomplete="off" type="range" id="voltage" name="voltage-range" min="-1.4" max="0.4" step="0.01" value=0.0>
+						
+						<span class="range-value-label">
+							<span id="range-min-value">-1.4</span> to                           
+							<span id="range-max-value">0.4</span>
+						</span>
+						<h1>Voltage:  <span id="myText"></span></h1>
+					</div>		
+			</div>
+			<div id="three-container-scene-1" class="row pn-junction fade-in" style="height: 500px; width: 700px"></div>
+		</div>
+		<div class="container2">
+			<div class="col-lg-4"> 
+				<h1> PN-Junction + Solar Cell </h1>
+				<p> Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </p>	
+				<div id="voltage-range-container2">
+					<label for="voltage-range2" style ="color:white; padding: 3em" for="voltage2">Voltage Level:</label>
+					<input autocomplete="off" type="range" id="voltage2" name="voltage-range" min="-1.4" max="0.4" step="0.01" value=0.0>
+					
+					<span class="range-value-label">
+						<span id="range-min-value2">-1.4</span> to                           
+						<span id="range-max-value2">0.4</span>
+					</span>
+					<h1>Voltage:  <span id="myText2"></span></h1>
+				</div>		
+			</div>
+			<!-- <div id="three-container2-scenenpm run build
+	-2" class="row pn-junction fade-in" style="height: 500px; width: 700px"></div>
+		</div> -->
+	
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+	</body>
+</html>
