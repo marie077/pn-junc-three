@@ -1,0 +1,33 @@
+name: Deploy Multiple Branches to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - feature-branch  # Add any other branches you want to deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          npm install  # Adjust if using another build tool (Yarn, etc.)
+
+      - name: Build Project
+        run: |
+          npm run build  # Adjust if using a different build command
+          mkdir -p deployment
+          mv build deployment/${{ github.ref_name }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deployment
+          destination_dir: ${{ github.ref_name }}
+          keep_files: true  # Preserve other branch builds
