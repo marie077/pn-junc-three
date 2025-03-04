@@ -9,17 +9,13 @@ import { XRButton } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRB
 import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/examples/jsm/webxr/XRControllerModelFactory.js'; 
 import { TextGeometry } from 'https://unpkg.com/three@0.163.0/examples/jsm/geometries/TextGeometry.js';
 import { FontLoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/FontLoader.js';
-import { RGBELoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/RGBELoader.js';
-
-const hdrFile = "/pn-junc-three/moonless_golf_1k.hdr";
-
 //scene set up variables and window variables
-let container, camera, scene, renderer;
+let container2, camera, scene, renderer;
 let updateId;
 let voltageLevel;
 let cameraControls;
 let gui;
-const voltageControl = document.getElementById('voltage');
+const voltageControl = document.getElementById('voltage2');
 let minScalar = 0.22;
 let maxScalar = 0.88;
 let cube1;
@@ -38,13 +34,6 @@ let clock = new THREE.Clock();
 let maxElectrons = 75;
 let maxHoles = 75;
 
-
-//Solar Cell Variables
-let solarCell;
-let trapezoid_top = 20;
-let trapezoid_bottom = 60;
-let trapezoid_height = cubeSize.y;
-let solarCellActivated = true;
 
 
 let boxMin = -(cubeSize.x/2) + 1;
@@ -102,24 +91,31 @@ let controller1, controller2;
 let controllerGrip1, controllerGrip2;
 let dolly;
 let xrSession = null;
+
+//Solar Cell Variables
+let solarCell;
+let trapezoid_top = 20;
+let trapezoid_bottom = 60;
+let trapezoid_height = cubeSize.y;
+
 // controller states
 const controllerStates = {
-	leftController: {
-		thumbstick: {x:0, y:0},
-		trigger: 0,
+    leftController: {
+        thumbstick: {x:0, y:0},
+        trigger: 0,
         triggerPressed: false
-	},
-	rightController: {
-		thumbstick: {x:0, y:0},
-		trigger: 0,
+    },
+    rightController: {
+        thumbstick: {x:0, y:0},
+        trigger: 0,
         triggerPressed: false
-	}
+    }
 };
 
 //movement settings
 const vrSettings = {
-	moveSpeed: 2,
-	rotationSpeed: 0.05
+    moveSpeed: 2,
+    rotationSpeed: 0.05
 };
 
 const loader = new FontLoader();
@@ -130,8 +126,9 @@ update();
 
 setInterval(() => {
     //creates hole/electron pair and adds to generatedPairs array
-    generatePair();
-}, 2000);
+    // generatePair();
+    solarGeneratePair();
+}, 1000);
 
  
 function init() {
@@ -149,48 +146,32 @@ function init() {
         }
     }
     
-    container = document.getElementById('three-container-scene-1');
+    container2 = document.getElementById('three-container2-scene-2');
     //scene
     scene = new THREE.Scene();
-	// scene.background = new THREE.Color(0x121212);
-    new RGBELoader()
-    .load(hdrFile, function (texture) {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        texture.format = THREE.RGBAFormat; // Ensure it’s fully opaque
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        texture.generateMipmaps = false;
-        
-        scene.environment = texture; // Use HDR for lighting
-        scene.background = texture; // Keep background solid black
-    });
-
-    // document.body.style.backgroundColor = "black"; // Extra security for black bg
-
-
+    scene.background = new THREE.Color(0x121212);
     //camera
-    camera = new THREE.PerspectiveCamera( 75, container.clientWidth / container.clientHeight, 0.1, 1500);
+    camera = new THREE.PerspectiveCamera( 75, container2.clientWidth / container2.clientHeight, 0.1, 1500);
     camera.position.z = 150;
     //renderer
-    renderer = new THREE.WebGLRenderer({ alpha: false });
-
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(container2.clientWidth, container2.clientHeight);
     renderer.xr.enabled = true;
     renderer.xr.setReferenceSpaceType('local-floor');
     initXR();
-    container.appendChild( renderer.domElement );
-	container.appendChild(XRButton.createButton(renderer));
-	dolly = new THREE.Object3D();
-	setUpVRControls();
+    container2.appendChild( renderer.domElement );
+    container2.appendChild(XRButton.createButton(renderer));
+    dolly = new THREE.Object3D();
+    setUpVRControls();
 
      // Add explicit size check
-     if (!container) {
-        console.error('Container not found');
+     if (!container2) {
+        console.error('container2 not found');
         return;
     }
-	
-		
-	//lighting
+    
+        
+    //lighting
     const light = new THREE.AmbientLight( 0xffffff, 3); // soft white light
     scene.add( light );
 
@@ -206,9 +187,10 @@ function init() {
         x: 0.0,
     };
 
-    document.getElementById("myText").innerHTML = 0;
+    document.getElementById("myText2").innerHTML = 0;
 
-    // moved to update
+
+    const resetButton = { 'Reset Cube': resetGUI };
 
     gui.add(cameraControls, 'translateX', -100, 100).onChange(() => {
         camera.position.x = cameraControls.translateX;
@@ -221,34 +203,28 @@ function init() {
         camera.rotation.y = MathUtils.degToRad(cameraControls.rotateY);
     });
 
-    const resetButton = { 'Reset Cube': resetGUI };
-
-    // Add a button to reset GUI controls
-    gui.add(resetButton, 'Reset Cube');
-
-    
-
-
+    // gui.add(voltageLevel, 'x', -1.4, 0.4).name('Voltage (V)').step(0.1).onChange(() => {
+    //     voltage = voltageLevel.x;
+    // });
     voltageControl.addEventListener('input', () => {
         const voltageLevel = parseFloat(voltageControl.value);
         voltage = voltageLevel;
-        document.getElementById("myText").innerHTML = voltage;
+        document.getElementById("myText2").innerHTML = voltage;
      });
 
- 
+    // Add a button to reset GUI controls
+    gui.add(resetButton, 'Reset Cube');
     
 
     // window resize handler
     window.addEventListener( 'resize', onWindowResize);
 
 
-    
-
     loader.load( 'https://unpkg.com/three@0.163.0/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
-        loader._font = font;
-        textgeometry = new TextGeometry( voltageText, {
-            font: font,
-            size: 5,
+    loader._font = font;
+    textgeometry = new TextGeometry( voltageText, {
+        font: font,
+        size: 5,
             depth: 0.5
         } );
         const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -311,7 +287,7 @@ function init() {
     const visiblePath2 = new THREE.Line(geometry2, material2);
     scene.add(visiblePath2);
 
-    // create cube container
+    // create cube container2
     const cubeGeometry = box(cubeSize.x, cubeSize.y, cubeSize.z);
     const cubeMaterial = new THREE.LineDashedMaterial({ color: 0xFFFFFF, dashSize: 3, gapSize: 1});
     cube1 = new THREE.LineSegments(cubeGeometry, cubeMaterial);
@@ -331,6 +307,15 @@ function init() {
     battery.position.set(0, -70, 0);
 
     scene.add( battery );
+
+     // solar cell init
+      
+    const solarCellGeo = createTrapezoidGeometry(trapezoid_top, trapezoid_bottom, trapezoid_height, cubeSize.z);
+    const solarMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFF00, transparent: true, opacity: 0.4} ); 
+    solarCell = new THREE.Mesh( solarCellGeo, solarMaterial ); 
+    solarCell.position.set(0, -30, 0);
+
+    scene.add(solarCell);
 
     // create a plane in the middle to separate P type and N type
     const planeGeo = new THREE.PlaneGeometry(cubeSize.z, cubeSize.y);
@@ -400,13 +385,13 @@ function init() {
             scatterTime: (scatterTimeMean + (perlin.noise(i * 100, i * 200, performance.now() * 0.001) - 0.5)*0.3)});
     }
 
+
 }
 
 function update() {
     renderer.setAnimationLoop( function(timestamp, frame) {
         // updateId = requestAnimationFrame( update );
-        
-		if (frame) {
+        if (frame) {
             const session = frame.session;
             if (session) {
                 let lastTriggerState = {left: false, right: false};
@@ -477,7 +462,9 @@ function update() {
         innerCube.position.set(0, 0, 0);
         scene.add(innerCube);
 
-        let origin = new THREE.Vector3(innerBoxSize/2, 0, 0 );
+        let origin_x = 0;
+        // ARROW IMPLEMENTATION
+        const origin = new THREE.Vector3(innerBoxSize/2, 0, 0 );
         const length = innerBoxSize;
         const hex = 0xffff00;
 
@@ -537,9 +524,9 @@ function update() {
         // checkBounds(holeSpheres, electronSpheres, hBoundsMin, hBoundsMax, eBoundsMin, eBoundsMax);
         checkBounds(holeSpheres, electronSpheres, boxMin, boxMax);
         // orbitControls.update();
-		updateCamera();
+        updateCamera();
         renderer.render( scene, camera );
-		
+        
     });
 }
 // Define buildController function
@@ -622,10 +609,10 @@ async function initXR(frame) {
     const xrSession = await navigator.xr.requestSession('immersive-vr');
 
     const inputSource = xrSession.inputSources[0];
-	controllerGrip1 = xrSession.requestReferenceSpace('local');
-	
-	//debug
-	console.log("number of input sources:" + inputSource.length);
+    controllerGrip1 = xrSession.requestReferenceSpace('local');
+    
+    //debug
+    console.log("number of input sources:" + inputSource.length);
 
     
 }
@@ -662,7 +649,7 @@ function onSelectEnd() {
     this.userData.isSelecting = false;
 }
 
-	
+    
 function negative_battery_anim() {
     for (let i = negativeBatteryElements.length - 1; i >= 0; i--) {
         let sphere = negativeBatteryElements[i];
@@ -1054,7 +1041,7 @@ function recombinationAnim() {
                     const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
                     orbSphere.position.copy(sphere.targetPosition);
                     sphere.orb = orbSphere;
-					sphere.orb.gradualVal = 3;
+                    sphere.orb.gradualVal = 3;
                     sphere.orbCreated = true;
                     scene.add(sphere.orb);
                 }
@@ -1064,8 +1051,8 @@ function recombinationAnim() {
                     sphere.orb.position.copy(sphere.targetPosition);
                     //let scale = 1 - (sphere.lerpProgress - 0.5) * 2; // Scale from 1 to 0 as lerp goes from 0.5 to 1
                     //sphere.orb.scale.setScalar(Math.max(0, scale));
-				    sphere.orb.scale.setScalar(sphere.orb.gradualVal);
-					sphere.orb.gradualVal -= 0.05;
+                    sphere.orb.scale.setScalar(sphere.orb.gradualVal);
+                    sphere.orb.gradualVal -= 0.05;
 
 
                     // Update opacity
@@ -1111,34 +1098,71 @@ function removeSpherePair(sphere1, sphere2) {
     recombinationOccured = true;
 }
 
-function generatePair() {
+function solarGeneratePair() {
     let position = new Vector3(
-        THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
-        THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
+        THREE.MathUtils.randFloat(-trapezoid_top/2 + (solarCell.position.x), trapezoid_top/2 + (solarCell.position.x)), 
+        THREE.MathUtils.randFloat(-trapezoid_height/2, trapezoid_height/2), 
         THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
-    // holes and electron are created at the same position
-    let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
-    let electron = createSphereAt(position.clone(), 0x1F51FF, false);
     
-    //set initial generation values to hole and electrons
-    hole.velocity = new THREE.Vector3(-0.02, 0, 0);
-    electron.velocity =  new THREE.Vector3(0.02, 0, 0);
+    if (position.x < -cubeSize.x / 2 + 1 || position.x > cubeSize.x / 2 - 1 || position.y > cubeSize.y/2 - 1 || position.y < -cubeSize.y/2 + 1) {
+        position.x = THREE.MathUtils.clamp(position.x, -cubeSize.x / 2 + 1, cubeSize.x / 2 - 1);
+        position.y = THREE.MathUtils.clamp(position.y, -cubeSize.x / 2 + 1, cubeSize.x / 2 - 1);
+    }
 
-    //generate orb
-    const orbGeo = new THREE.SphereGeometry(2, 32, 32);
-    const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5});
-    const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
-    
-    //calculate orb position using midpoint of pair and set position
-    let midpoint = hole.object.position.clone().add(electron.object.position.clone()).multiplyScalar(0.5);
-    orbSphere.position.copy(midpoint);
-    //initial orb opacity level
-    orbSphere.gradualVal = 0.5;
-    scene.add(orbSphere);
-
-    //generatedPair array [{hole, electron, orbSphere, position}]
-    generatedPairs.push({hole, electron, orbSphere, position});
+     // holes and electron are created at the same position
+     let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
+     let electron = createSphereAt(position.clone(), 0x1F51FF, false);
+     
+     //set initial generation values to hole and electrons
+     hole.velocity = new THREE.Vector3(-0.02, 0, 0);
+     electron.velocity =  new THREE.Vector3(0.02, 0, 0);
+ 
+     //generate orb
+     const orbGeo = new THREE.SphereGeometry(2, 32, 32);
+     const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5});
+     const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+     
+     //calculate orb position using midpoint of pair and set position
+     let midpoint = hole.object.position.clone().add(electron.object.position.clone()).multiplyScalar(0.5);
+     orbSphere.position.copy(midpoint);
+     //initial orb opacity level
+     orbSphere.gradualVal = 0.5;
+     scene.add(orbSphere);
+ 
+     //generatedPair array [{hole, electron, orbSphere, position}]
+     generatedPairs.push({hole, electron, orbSphere, position});                
 }
+
+//NOT SOLAR CELL GENERATION 
+
+// function generatePair() {
+//     let position = new Vector3(
+//         THREE.MathUtils.randFloat(-cubeSize.x/2 + 1, cubeSize.x/2 - 1), 
+//         THREE.MathUtils.randFloat(-cubeSize.y/2 + 1, cubeSize.y/2 - 1), 
+//         THREE.MathUtils.randFloat(-cubeSize.z/2 + 1, cubeSize.z/2 - 1));
+//     // holes and electron are created at the same position
+//     let hole = createSphereAt(position.clone().add(new THREE.Vector3(2,0,0)), 0xFF3131, false);
+//     let electron = createSphereAt(position.clone(), 0x1F51FF, false);
+    
+//     //set initial generation values to hole and electrons
+//     hole.velocity = new THREE.Vector3(-0.02, 0, 0);
+//     electron.velocity =  new THREE.Vector3(0.02, 0, 0);
+
+//     //generate orb
+//     const orbGeo = new THREE.SphereGeometry(2, 32, 32);
+//     const orbMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5});
+//     const orbSphere = new THREE.Mesh(orbGeo, orbMaterial);
+    
+//     //calculate orb position using midpoint of pair and set position
+//     let midpoint = hole.object.position.clone().add(electron.object.position.clone()).multiplyScalar(0.5);
+//     orbSphere.position.copy(midpoint);
+//     //initial orb opacity level
+//     orbSphere.gradualVal = 0.5;
+//     scene.add(orbSphere);
+
+//     //generatedPair array [{hole, electron, orbSphere, position}]
+//     generatedPairs.push({hole, electron, orbSphere, position});
+// }
 
 function generationAnim() {
     // if a generated pair exists
@@ -1296,18 +1320,6 @@ function generation() {
                     
                 } 
             }
-            // if (boolean == true) {
-            // requestID = requestAnimationFrame(animateGeneration);
-            // }
-        // }
-        // requestAnimationFrame(animateGeneration);   
-        // cancelAnimationFrame(requestID)
-
-    // }, 1000);
-
-    // setTimeout(generation, 2000);
-
-
 }
 
 function updateRecombinationStatus() {
@@ -1524,11 +1536,56 @@ function createSphereAt(position, sphereColor, transparency) {
 }
 
 function updateArrow(origin, length, hex) {
-    let headLength = innerBoxSize/4; //size of arrow head
-    scene.remove(arrowNegative);
-    arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), origin, length, hex, headLength);
-    scene.add(arrowNegative);
+     let headLength = innerBoxSize/4; //size of arrow head
+        scene.remove(arrowNegative);
+        arrowNegative = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), origin, length, hex, headLength);
+        scene.add(arrowNegative);
 }
+
+function createTrapezoidGeometry(topWidth, bottomWidth, height, depth) {
+    const geometry = new THREE.BufferGeometry();
+  
+    const vertices = [
+      // Top face
+      -topWidth / 2, height, -depth / 2,
+      topWidth / 2, height, -depth / 2,
+      topWidth / 2, height, depth / 2,
+      -topWidth / 2, height, depth / 2,
+  
+      // Bottom face
+      -bottomWidth / 2, 0, -depth / 2,
+      bottomWidth / 2, 0, -depth / 2,
+      bottomWidth / 2, 0, depth / 2,
+      -bottomWidth / 2, 0, depth / 2,
+  
+      // Side faces
+      -topWidth / 2, height, -depth / 2,
+      -bottomWidth / 2, 0, -depth / 2,
+      -bottomWidth / 2, 0, depth / 2,
+      -topWidth / 2, height, depth / 2,
+  
+      topWidth / 2, height, -depth / 2,
+      bottomWidth / 2, 0, -depth / 2,
+      bottomWidth / 2, 0, depth / 2,
+      topWidth / 2, height, depth / 2
+    ];
+  
+    const indices = [
+      0, 1, 2, 2, 3, 0, // Top face
+      4, 5, 6, 6, 7, 4, // Bottom face
+      3, 2, 6, 6, 7, 3, // Front face
+      1, 5, 6, 6, 2, 1, // Right face
+      0, 3, 7, 7, 4, 0, // Left face
+      5, 1, 0, 0, 4, 5  // Back face
+    ];
+  
+    geometry.setIndex(indices);
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
+    geometry.computeVertexNormals();
+  
+    return geometry;
+}
+
 
 function box( width, height, depth ) {
 
@@ -1585,9 +1642,9 @@ function box( width, height, depth ) {
 
 
 function onWindowResize() {
-    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.aspect = container2.clientWidth / container2.clientHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight, false);
+    renderer.setSize(container2.clientWidth, container2.clientHeight, false);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 }
 
