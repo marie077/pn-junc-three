@@ -6,5 +6,9 @@ export default defineConfig({
   rollupOptions: {
     input: 'index.html',  // Ensures all scripts in index.html are kept
     external: ['/pn-junc-three/solarcell.js'],
+    assetsInclude: ['**/*.hdr'], // Ensure HDR files are included in the build
 },
 });
+
+
+
