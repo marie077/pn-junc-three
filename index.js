@@ -10,7 +10,7 @@ import { XRControllerModelFactory } from 'https://unpkg.com/three@0.163.0/exampl
 import { TextGeometry } from 'https://unpkg.com/three@0.163.0/examples/jsm/geometries/TextGeometry.js';
 import { FontLoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/FontLoader.js';
 import { RGBELoader } from 'https://unpkg.com/three@0.163.0/examples/jsm/loaders/RGBELoader.js';
-
+import hdrFile from "./assets/moonless_golf_1k.hdr";
 
 //scene set up variables and window variables
 let container, camera, scene, renderer;
@@ -153,8 +153,7 @@ function init() {
     scene = new THREE.Scene();
 	// scene.background = new THREE.Color(0x121212);
     new RGBELoader()
-    .setPath('assets/')
-    .load('moonless_golf_1k.hdr', function (texture) {
+    .load(hdrFile, function (texture) {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         texture.format = THREE.RGBAFormat; // Ensure it’s fully opaque
         texture.minFilter = THREE.LinearFilter;
